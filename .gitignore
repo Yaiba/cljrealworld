@@ -1,0 +1,19 @@
+# Clojure
+.cpcache/
+.clj-kondo/.cache/
+target/
+
+# nREPL
+.nrepl-port
+
+# Calva
+.calva/output-window/
+
+# LSP
+.lsp/.cache/
+
+# Maven
+~/.m2/
+
+# macOS
+.DS_Store
