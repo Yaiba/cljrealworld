@@ -18,7 +18,7 @@
 - [x] Create `deps.edn` with `:deps`, `:paths`, `:aliases`
 - [x] Add a `:dev` alias with nREPL + Portal + `dev/` on classpath
 - [x] Connect Calva editor to the REPL with `:dev` alias
-- [ ] Understand how aliases compose: `clj -M:dev:test`
+- [x] Understand how aliases compose: `clj -M:dev:test`
 
 ### 1.3 REPL-driven development basics
 - [x] Evaluate expressions inline from the editor (`Ctrl+Enter` in Calva)
