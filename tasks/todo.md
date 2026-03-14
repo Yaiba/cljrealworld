@@ -44,31 +44,31 @@
 **Estimated time**: ~1 week
 
 ### 2.1 Ring fundamentals
-- [ ] Add Ring, http-kit, Reitit, Muuntaja to `deps.edn`
-- [ ] Write a bare Ring handler: `(defn handler [req] {:status 200 :body "ok"})`
-- [ ] Call it directly from the REPL (no server needed!)
-- [ ] Start http-kit server from the REPL, stop it from the REPL
-- [ ] Understand: request map, response map, middleware = function wrapping a function
+- [x] Add Ring, http-kit, Reitit, Muuntaja to `deps.edn`
+- [x] Write a bare Ring handler: `(defn handler [req] {:status 200 :body "ok"})`
+- [x] Call it directly from the REPL (no server needed!)
+- [x] Start http-kit server from the REPL, stop it from the REPL
+- [x] Understand: request map, response map, middleware = function wrapping a function
 
 ### 2.2 Reitit routing
-- [ ] Define routes as a data vector (not macros)
-- [ ] Add Muuntaja for JSON ↔ EDN coercion
+- [x] Define routes as a data vector (not macros)
+- [x] Add Muuntaja for JSON ↔ EDN coercion
 - [ ] Add query param and path param coercion
-- [ ] Handle 404 and method-not-allowed
+- [x] Handle 404 and method-not-allowed
 
 ### 2.3 In-memory state
-- [ ] Use a Clojure `atom` as a fake database
-- [ ] Write pure functions that take/return the atom's value (not side-effectful)
+- [x] Use a Clojure `atom` as a fake database
+- [x] Write pure functions that take/return the atom's value (not side-effectful)
 
 ### 2.4 Build first 4 endpoints (in-memory, no DB yet)
-- [ ] `POST /api/users` — register (store in atom)
-- [ ] `POST /api/users/login` — login (return fake token)
-- [ ] `GET  /api/user` — get current user
-- [ ] `GET  /api/tags` — return hardcoded tags
+- [x] `POST /api/users` — register (store in atom)
+- [x] `POST /api/users/login` — login (return fake token)
+- [x] `GET  /api/user` — get current user
+- [x] `GET  /api/tags` — return hardcoded tags
 
 ### 2.5 REPL skill: test handlers without HTTP
-- [ ] Call `(handler (mock-request :get "/api/tags"))` from REPL
-- [ ] Assert response shape from the REPL
+- [x] Call `(handler (mock-request :get "/api/tags"))` from REPL
+- [x] Assert response shape from the REPL
 
 **Stage 2 complete when**: All 4 endpoints return correct JSON, tested from REPL.
 
