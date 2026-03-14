@@ -8,6 +8,7 @@ target/
 
 # Calva
 .calva/output-window/
+.calva/repl.calva-repl
 
 # LSP
 .lsp/.cache/
