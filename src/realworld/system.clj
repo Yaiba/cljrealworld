@@ -29,7 +29,7 @@
 (defmethod ig/init-key :router/core
   [_ {:keys [db secret]}]
   (println "Initializing router with DB connection and secret")
-  (server/create-app secret))
+  (server/create-app db secret))
 
 (defmethod ig/init-key :server/http
   [_ {:keys [port handler]}]

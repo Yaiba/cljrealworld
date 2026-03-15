@@ -1,16 +1,26 @@
 (ns realworld.server
-  (:require [org.httpkit.server :as http]
-            [reitit.ring :as ring]
+  (:require [reitit.ring :as ring]
             [muuntaja.core :as m]
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.parameters :as parameters]
-            [realworld.db :as db]
+            [realworld.db.users :as db.users]
             [ring.mock.request :as mock]
-            [realworld.auth :as auth]))
+            [realworld.auth :as auth]
+            [realworld.schema :as schema]
+            [reitit.coercion.malli :as malli-coercion]
+            [reitit.ring.coercion :as coercion]))
 
-(defonce server-instance (atom nil))
+(defn wrap-db
+  [handler ds]
+  (fn [req]
+    (handler (assoc req :ds ds))))
 
-(defn handler
+(defn wrap-secret
+  [handler secret]
+  (fn [req]
+    (handler (assoc req :secret secret))))
+
+(defn dummy-handler
   [req]
   {:status 200
    :headers {"Content-Type" "application/json"}
@@ -18,67 +28,102 @@
 
 (defn create-user-handler
   [req]
-  (let [user (get-in req [:body-params])
-        user-existing? (db/find-user-by-email (:email user))]
-    (if user-existing?
+  (let [ds (:ds req)
+        secret (:secret req)
+        user (get-in req [:parameters :body :user])]
+    (if (db.users/find-by-email ds (:email user))
       {:status 422
        :headers {"Content-Type" "application/json"}
-       :body {:error "User already exists"}}
-      (do
+       :body {:error {:email "has already been taken"}}}
+      (let [created (db.users/create! ds user) ; TODO: try-catch?
+            token (auth/sign-token created secret)]
         (println "Creating user:" user)
-        (db/create-user! user)
         {:status 201
          :headers {"Content-Type" "application/json"}
-         :body {:user user}}))))
+         :body {:user {:email (:users/email user)
+                       :username (:users/username user)
+                       :token token
+                       :bio (:users/bio user)
+                       :image (:users/image user)}}}))))
 
 (defn user-login-handler
   [req]
-  (let [credentials (get-in req [:body-params])
-        user (db/find-user-by-email (:email credentials))]
-    (if (and user (= (:password user) (:password credentials)))
-      {:status 200
-       :headers {"Content-Type" "application/json"}
-       :body {:user (dissoc user :password)}}
+  (let [ds (:ds req)
+        secret (:secret req)
+        credentials (get-in req [:parameters :body :user])
+        user (db.users/find-by-email ds (:email credentials))]
+    (if (and user (= (:users/password user) (:password credentials)))
+      (let [token (auth/sign-token user secret)]
+        {:status 200
+         :headers {"Content-Type" "application/json"}
+         :body {:user {:email (:users/email user)
+                       :username (:users/username user)
+                       :token token
+                       :bio (:users/bio user)
+                       :image (:users/image user)}}})
       {:status 401
        :headers {"Content-Type" "application/json"}
        :body {:error "Invalid email or password"}})))
+
+(defn update-user-handler [req]
+  (let [_identity (:identity req)]
+    (if-not _identity
+      {:status 401 :body {:error "Unauthorized"}}
+      (let [ds     (:ds req)
+            fields (get-in req [:parameters :body :user])
+            user   (db.users/update! ds (:user-id _identity) fields)]
+        {:status 200
+         :body {:user {:email    (:users/email user)
+                       :username (:users/username user)
+                       :bio      (:users/bio user)
+                       :image    (:users/image user)
+                       :token    (auth/sign-token user (:secret req))}}}))))
+
 
 (defn get-tags-handler
   [req]
   {:status 200
    :headers {"Content-Type" "application/json"}
-   :body {:tags (:tags @db/app-db)}})
+   :body {:tags []}})
 
 (defn get-user-handler
   "Hardcoded user response for testing purposes."
   [req]
-  (let [_identity (:identity req)]
-    (if _identity
+  (if-let [_identity (:identity req)]
+    (let [user (db.users/find-by-id (:ds req) (:user-id _identity))]
       {:status 200
        :headers {"Content-Type" "application/json"}
-       :body {:user _identity}}
-      {:status 401
-       :headers {"Content-Type" "application/json"}
-       :body {:error "Unauthorized"}})))
+       :body {:user (dissoc user :password)}})
+    {:status 401
+     :headers {"Content-Type" "application/json"}
+     :body {:error "Unauthorized"}}))
 
 (defn create-app
-  [secret]
+  [ds secret]
   (-> (ring/router
-       [["/api/users" {:post #'create-user-handler}]
-        ["/api/users/login" {:post #'user-login-handler}]
-        ["/api/user" {:get #'get-user-handler}]
+       [["/api/users" {:post {:handler #'create-user-handler
+                              :parameters {:body [:map [:user schema/NewUser]]}}}]
+        ["/api/users/login" {:post {:handler #'user-login-handler
+                                    :parameters {:body [:map [:user schema/LoginCredentials]]}}}]
+        ["/api/user" {:get #'get-user-handler
+                      :put {:handler #'update-user-handler
+                            :parameters {:body [:map [:user [:map
+                                                             [:email   {:optional true} :string]
+                                                             [:username {:optional true} :string]
+                                                             [:bio      {:optional true} :string]
+                                                             [:image    {:optional true} :string]
+                                                             [:password {:optional true} :string]]]]}}}]
         ["/api/tags" {:get #'get-tags-handler}]]
        {:data {:muuntaja m/instance
+               :coercion malli-coercion/coercion
                :middleware [parameters/parameters-middleware
                             muuntaja/format-negotiate-middleware
+                            coercion/coerce-exceptions-middleware
                             muuntaja/format-response-middleware
-                            muuntaja/format-request-middleware]}})
+                            muuntaja/format-request-middleware
+                            coercion/coerce-request-middleware
+                            coercion/coerce-response-middleware]}})
       (ring/ring-handler (ring/create-default-handler))
+      (wrap-db ds)
+      (wrap-secret secret)
       (auth/wrap-auth secret)))
-
-(comment
-  (def test-user {:email "test@test.com" :username "test" :password "secret"})
-  (db/create-user! test-user)
-  (get-tags-handler {})
-  (require '[ring.mock.request :as mock])
-  )

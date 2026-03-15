@@ -102,9 +102,9 @@
 - [x] Inject `:identity` into request map for downstream handlers
 
 ### 3.5 Validation with malli
-- [ ] Define malli schemas for User, Article, Comment
-- [ ] Plug malli into Reitit coercion
-- [ ] Return spec-compliant error responses on validation failure
+- [x] Define malli schemas for User, Article, Comment
+- [x] Plug malli into Reitit coercion
+- [x] Return spec-compliant error responses on validation failure
 
 ### 3.6 Complete all 20 endpoints
 - [ ] Users: register, login, get current user, update user
