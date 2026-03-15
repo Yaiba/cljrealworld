@@ -4,7 +4,7 @@
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.parameters :as parameters]
             [realworld.db.users :as db.users]
-            [ring.mock.request :as mock]
+            [realworld.db.follows :as db.follows]
             [realworld.auth :as auth]
             [realworld.schema :as schema]
             [reitit.coercion.malli :as malli-coercion]
@@ -79,7 +79,6 @@
                        :image    (:users/image user)
                        :token    (auth/sign-token user (:secret req))}}}))))
 
-
 (defn get-tags-handler
   [req]
   {:status 200
@@ -98,6 +97,44 @@
      :headers {"Content-Type" "application/json"}
      :body {:error "Unauthorized"}}))
 
+(defn profile-response [user following]
+  {:username  (:users/username user)
+   :bio       (:users/bio user)
+   :image     (:users/image user)
+   :following following})
+
+(defn get-profile-handler [req]
+  (let [ds       (:ds req)
+        username (get-in req [:path-params :username])
+        user     (db.users/find-by-username ds username)]
+    (if-not user
+      {:status 404 :headers {"Content-Type" "application/json"} :body {:error "User not found"}}
+      (let [_identity  (:identity req)
+            following (if _identity
+                        (db.follows/following? ds (:user-id _identity) (:users/id user))
+                        false)]
+        {:status 200 :headers {"Content-Type" "application/json"} :body {:profile (profile-response user following)}}))))
+
+(defn follow-user-handler [req]
+  (let [_identity (:identity req)]
+    (if-not _identity
+      {:status 401 :body {:error "Unauthorized"}}
+      (let [ds       (:ds req)
+            username (get-in req [:path-params :username])
+            user     (db.users/find-by-username ds username)]
+        (db.follows/follow! ds (:user-id _identity) (:users/id user))
+        {:status 200 :headers {"Content-Type" "application/json"} :body {:profile (profile-response user true)}}))))
+
+(defn unfollow-user-handler [req]
+  (let [identity (:identity req)]
+    (if-not identity
+      {:status 401 :body {:error "Unauthorized"}}
+      (let [ds       (:ds req)
+            username (get-in req [:path-params :username])
+            user     (db.users/find-by-username ds username)]
+        (db.follows/unfollow! ds (:user-id identity) (:users/id user))
+        {:status 200 :headers {"Content-Type" "application/json"} :body {:profile (profile-response user false)}}))))
+
 (defn create-app
   [ds secret]
   (-> (ring/router
@@ -113,7 +150,10 @@
                                                              [:bio      {:optional true} :string]
                                                              [:image    {:optional true} :string]
                                                              [:password {:optional true} :string]]]]}}}]
-        ["/api/tags" {:get #'get-tags-handler}]]
+        ["/api/tags" {:get #'get-tags-handler}]
+        ["/api/profiles/:username" {:get #'get-profile-handler}]
+        ["/api/profiles/:username/follow" {:post   #'follow-user-handler
+                                           :delete #'unfollow-user-handler}]]
        {:data {:muuntaja m/instance
                :coercion malli-coercion/coercion
                :middleware [parameters/parameters-middleware

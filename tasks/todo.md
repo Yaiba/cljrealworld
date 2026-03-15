@@ -107,8 +107,8 @@
 - [x] Return spec-compliant error responses on validation failure
 
 ### 3.6 Complete all 20 endpoints
-- [ ] Users: register, login, get current user, update user
-- [ ] Profiles: get profile, follow, unfollow
+- [x] Users: register, login, get current user, update user
+- [x] Profiles: get profile, follow, unfollow
 - [ ] Articles: list (with filters), feed, get, create, update, delete
 - [ ] Comments: add, get, delete
 - [ ] Favorites: favorite, unfavorite
