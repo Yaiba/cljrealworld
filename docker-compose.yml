@@ -1,0 +1,10 @@
+services:
+  db:
+    image: postgres:17.4-alpine3.21
+    environment:
+      POSTGRES_USER: realworld
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: realworld
+    ports:
+      - "5432:5432"
+

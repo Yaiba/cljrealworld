@@ -5,7 +5,8 @@
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.parameters :as parameters]
             [realworld.db :as db]
-            [ring.mock.request :as mock]))
+            [ring.mock.request :as mock]
+            [realworld.auth :as auth]))
 
 (defonce server-instance (atom nil))
 
@@ -51,49 +52,33 @@
 (defn get-user-handler
   "Hardcoded user response for testing purposes."
   [req]
-  {:status 200
-   :headers {"Content-Type" "application/json"}
-   :body {:user {:email "test@test.com" :username "test" :password "secret"}}})
+  (let [_identity (:identity req)]
+    (if _identity
+      {:status 200
+       :headers {"Content-Type" "application/json"}
+       :body {:user _identity}}
+      {:status 401
+       :headers {"Content-Type" "application/json"}
+       :body {:error "Unauthorized"}})))
 
-(def router
-  (ring/router
-   [["/api/users" {:post create-user-handler}]
-    ["/api/users/login" {:post user-login-handler}]
-    ["/api/user" {:get get-user-handler}]
-    ["/api/tags" {:get get-tags-handler}]]
-   {:data {:muuntaja m/instance
-           :middleware [parameters/parameters-middleware
-                        muuntaja/format-negotiate-middleware
-                        muuntaja/format-response-middleware
-                        muuntaja/format-request-middleware]}}))
-
-(def app
-  (ring/ring-handler router (ring/create-default-handler)))
-
-(defn start-server!
-  []
-  (reset! server-instance (http/run-server app {:port 3000})))
-
-(defn stop-server!
-  []
-  (when @server-instance
-    (@server-instance :timeout 100)
-    (reset! server-instance nil)))
+(defn create-app
+  [secret]
+  (-> (ring/router
+       [["/api/users" {:post #'create-user-handler}]
+        ["/api/users/login" {:post #'user-login-handler}]
+        ["/api/user" {:get #'get-user-handler}]
+        ["/api/tags" {:get #'get-tags-handler}]]
+       {:data {:muuntaja m/instance
+               :middleware [parameters/parameters-middleware
+                            muuntaja/format-negotiate-middleware
+                            muuntaja/format-response-middleware
+                            muuntaja/format-request-middleware]}})
+      (ring/ring-handler (ring/create-default-handler))
+      (auth/wrap-auth secret)))
 
 (comment
   (def test-user {:email "test@test.com" :username "test" :password "secret"})
   (db/create-user! test-user)
   (get-tags-handler {})
   (require '[ring.mock.request :as mock])
-  (slurp (app (mock/request :get "/api/tags")
-              (mock/header "Accept" "application/json")))
-  (app (-> (mock/request :get "/api/tags")
-           (mock/header "Accept" "application/json"))) 
-  (app (-> (mock/request :get "/api/user")))
-  (app (-> (mock/request :post "/api/users")
-           (mock/json-body (assoc test-user :email "test3@test.com")))) 
-  (app (-> (mock/request :post "/api/users/login")
-           (mock/json-body {:email "test@test.com" :password "secret"}))) 
-  (app (-> (mock/request :post "/api/users/login")
-           (mock/json-body {:email "test@test.com" :password "secret2"})))
   )

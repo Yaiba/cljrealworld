@@ -79,27 +79,27 @@
 **Estimated time**: ~2 weeks
 
 ### 3.1 Database setup
-- [ ] Install PostgreSQL locally (or run via Docker)
-- [ ] Add next.jdbc + HoneySQL to `deps.edn`
-- [ ] Write `db/connection.clj` with a connection pool (HikariCP)
-- [ ] Write first query with HoneySQL: `{:select [:*] :from [:users]}`
-- [ ] Understand: `execute!` vs `execute-one!`, result maps
+- [x] Install PostgreSQL locally (or run via Docker)
+- [x] Add next.jdbc + HoneySQL to `deps.edn`
+- [x] Write `db/connection.clj` with a connection pool (HikariCP)
+- [x] Write first query with HoneySQL: `{:select [:*] :from [:users]}`
+- [x] Understand: `execute!` vs `execute-one!`, result maps
 
 ### 3.2 Schema + migrations
-- [ ] Add Migratus or Flyway for migrations
-- [ ] Write SQL migrations for: users, articles, comments, tags, favorites, follows
+- [x] Add Migratus or Flyway for migrations
+- [x] Write SQL migrations for: users, articles, comments, tags, favorites, follows
 
 ### 3.3 Integrant system
-- [ ] Add Integrant to `deps.edn`
-- [ ] Define system config in `core.clj`: `:db/pool`, `:server/http`
-- [ ] Write `dev/user.clj` with `(reset)`, `(start)`, `(stop)` helpers
-- [ ] Practice: change a handler, call `(reset)`, re-test — never restart the JVM
+- [x] Add Integrant to `deps.edn`
+- [x] Define system config in `core.clj`: `:db/pool`, `:server/http`
+- [x] Write `dev/user.clj` with `(reset)`, `(start)`, `(stop)` helpers
+- [x] Practice: change a handler, call `(reset)`, re-test — never restart the JVM
 
 ### 3.4 JWT authentication
-- [ ] Add buddy-auth to `deps.edn`
-- [ ] Write `auth.clj`: `sign-token`, `verify-token`
-- [ ] Write Ring middleware: extract `Authorization: Token ...` header
-- [ ] Inject `:identity` into request map for downstream handlers
+- [x] Add buddy-auth to `deps.edn`
+- [x] Write `auth.clj`: `sign-token`, `verify-token`
+- [x] Write Ring middleware: extract `Authorization: Token ...` header
+- [x] Inject `:identity` into request map for downstream handlers
 
 ### 3.5 Validation with malli
 - [ ] Define malli schemas for User, Article, Comment

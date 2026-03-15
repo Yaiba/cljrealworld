@@ -1,0 +1,8 @@
+CREATE TABLE comments (
+  id         SERIAL PRIMARY KEY,
+  body       TEXT NOT NULL,
+  author_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

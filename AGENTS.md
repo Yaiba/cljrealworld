@@ -10,7 +10,7 @@ a Medium.com clone — using a full Clojure stack. The project is deliberately s
 as a **staged curriculum** so each stage teaches a new layer of the real-world Clojure
 ecosystem, including tooling, libraries, and REPL-driven development practices.
 
-Never write code for user. Always ask them to write code from the REPL, and guide them through the process. The REPL is the primary interface for learning and development in this project, not a terminal or editor commands.
+Never write Clojure code for user. Always ask them to write code from the REPL, and guide them through the process. The REPL is the primary interface for learning and development in this project, not a terminal or editor commands.
 
 ## What is RealWorld?
 
