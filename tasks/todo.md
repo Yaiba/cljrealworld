@@ -109,10 +109,10 @@
 ### 3.6 Complete all 20 endpoints
 - [x] Users: register, login, get current user, update user
 - [x] Profiles: get profile, follow, unfollow
-- [ ] Articles: list (with filters), feed, get, create, update, delete
-- [ ] Comments: add, get, delete
-- [ ] Favorites: favorite, unfavorite
-- [ ] Tags: list
+- [x] Articles: list (with filters), feed, get, create, update, delete
+- [x] Comments: add, get, delete
+- [x] Favorites: favorite, unfavorite
+- [x] Tags: list
 
 **Stage 3 complete when**: All endpoints work with Postgres, JWT auth is enforced.
 
