@@ -138,10 +138,10 @@
 - [ ] Test middleware in isolation
 
 ### 4.4 Official RealWorld test suite
-- [ ] Install Hurl (`brew install hurl`)
-- [ ] Run the official Hurl test suite against your server
-- [ ] Fix any failing tests
-- [ ] All Hurl tests passing ✓
+- [x] Install Hurl (`brew install hurl`)
+- [x] Run the official Hurl test suite against your server
+- [x] Fix any failing tests
+- [x] All Hurl tests passing ✓
 
 **Stage 4 complete when**: `clj -M:test` passes and Hurl suite is green.
 

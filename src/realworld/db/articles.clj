@@ -7,10 +7,13 @@
 ;; ── helpers ──────────────────────────────────────────────────────────────────
 
 (defn slugify [title]
-  (-> title
-      str/lower-case
-      (str/replace #"[^\w\s-]" "")
-      (str/replace #"\s+" "-")))
+  (str 
+   (-> title
+       str/lower-case
+       (str/replace #"[^\w\s-]" "")
+       (str/replace #"\s+" "-"))
+   "-"
+   (subs (str (random-uuid)) 0 8)))
 
 (def ^:private article-select
   [[:a.id :id]

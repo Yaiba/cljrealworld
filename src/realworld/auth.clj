@@ -17,10 +17,3 @@
   [req]
   (some-> (get-in req [:headers "authorization"])
           (clojure.string/replace #"^Token " "")))
-
-(defn wrap-auth
-  [handler secret]
-  (fn [req]
-    (let [_identity (some-> (extract-token req)
-                           (verify-token secret))]
-      (handler (assoc req :identity _identity)))))

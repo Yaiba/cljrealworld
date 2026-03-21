@@ -3,6 +3,7 @@
             [muuntaja.core :as m]
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.parameters :as parameters]
+            [reitit.ring.middleware.exception :as exception]
             [realworld.db.users :as db.users]
             [realworld.db.follows :as db.follows]
             [realworld.db.articles :as db.articles]
@@ -12,22 +13,20 @@
             [realworld.auth :as auth]
             [realworld.schema :as schema]
             [reitit.coercion.malli :as malli-coercion]
-            [reitit.ring.coercion :as coercion]))
+            [reitit.ring.coercion :as coercion]
+            [malli.error :as me]))
 
-(defn wrap-db
-  [handler ds]
-  (fn [req]
-    (handler (assoc req :ds ds))))
-
-(defn wrap-secret
-  [handler secret]
-  (fn [req]
-    (handler (assoc req :secret secret))))
+(defn empty-string->nil
+  [s]
+  (when (not= s "") s))
 
 ;; ── response helpers ──────────────────────────────────────────────────────────
 
 (defn- err [& messages]
   {:errors {:body (vec messages)}})
+
+(defn- err-key [key & messages]
+  {:errors {(keyword key) (vec messages)}})
 
 (defn- ts->str [ts]
   (when ts (str (.toInstant ts))))
@@ -57,6 +56,9 @@
                       :image     (:author_image article)
                       :following following}}))
 
+(defn build-article-summary [ds article current-user-id]
+  (dissoc (build-article-response ds article current-user-id) :body))
+
 (defn build-comment-response [ds comment current-user-id]
   (let [author-id (:author_id comment)
         following (if current-user-id
@@ -78,17 +80,19 @@
   (let [ds     (:ds req)
         secret (:secret req)
         user   (get-in req [:parameters :body :user])]
-    (if (db.users/find-by-email ds (:email user))
-      {:status 422
-       :body   (err "email has already been taken")}
-      (let [created (db.users/create! ds user)
-            token   (auth/sign-token created secret)]
-        {:status 201
-         :body   {:user {:email    (:users/email created)
-                         :username (:users/username created)
-                         :token    token
-                         :bio      (:users/bio created)
-                         :image    (:users/image created)}}}))))
+    (cond 
+      (db.users/find-by-email ds (:email user)) {:status 409
+                                                 :body   {:errors {:email ["has already been taken"]}}}
+      (db.users/find-by-username ds (:username user)) {:status 409
+                                                       :body   {:errors {:username ["has already been taken"]}}}    
+      :else (let [created (db.users/create! ds user)
+                  token   (auth/sign-token created secret)]
+              {:status 201
+               :body   {:user {:email    (:users/email created)
+                               :username (:users/username created)
+                               :token    token
+                               :bio      (:users/bio created)
+                               :image    (:users/image created)}}}))))
 
 (defn user-login-handler
   [req]
@@ -105,34 +109,30 @@
                          :bio      (:users/bio user)
                          :image    (:users/image user)}}})
       {:status 401
-       :body   (err "Invalid email or password")})))
+       :body   (err-key :credentials "invalid")})))
 
 (defn get-user-handler
   [req]
-  (if-let [identity (:identity req)]
-    (let [user (db.users/find-by-id (:ds req) (:user-id identity))]
-      {:status 200
-       :body   {:user {:email    (:users/email user)
-                       :username (:users/username user)
-                       :token    (auth/sign-token user (:secret req))
-                       :bio      (:users/bio user)
-                       :image    (:users/image user)}}})
-    {:status 401
-     :body   (err "Unauthorized")}))
+  (let [identity (:identity req)
+        user (db.users/find-by-id (:ds req) (:user-id identity))]
+    {:status 200
+     :body   {:user {:email    (:users/email user)
+                     :username (:users/username user)
+                     :token    (auth/sign-token user (:secret req))
+                     :bio      (empty-string->nil (:users/bio user)) ; normalize to nil if empty
+                     :image    (empty-string->nil (:users/image user))}}}))
 
 (defn update-user-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds     (:ds req)
-            fields (get-in req [:parameters :body :user])
-            user   (db.users/update! ds (:user-id identity) fields)]
-        {:status 200
-         :body   {:user {:email    (:users/email user)
-                         :username (:users/username user)
-                         :bio      (:users/bio user)
-                         :image    (:users/image user)
-                         :token    (auth/sign-token user (:secret req))}}}))))
+  (let [identity (:identity req)
+        ds     (:ds req)
+        fields (get-in req [:parameters :body :user])
+        user   (db.users/update! ds (:user-id identity) fields)]
+    {:status 200
+     :body   {:user {:email    (:users/email user)
+                     :username (:users/username user)
+                     :bio      (empty-string->nil (:users/bio user))
+                     :image    (empty-string->nil (:users/image user))
+                     :token    (auth/sign-token user (:secret req))}}}))
 
 ;; ── profile handlers ──────────────────────────────────────────────────────────
 
@@ -147,7 +147,7 @@
         username (get-in req [:path-params :username])
         user     (db.users/find-by-username ds username)]
     (if-not user
-      {:status 404 :body (err "User not found")}
+      {:status 404 :body {:errors {:profile ["not found"]}}} ;; different body
       (let [identity  (:identity req)
             following (if identity
                         (db.follows/following? ds (:user-id identity) (:users/id user))
@@ -155,22 +155,24 @@
         {:status 200 :body {:profile (profile-response user following)}}))))
 
 (defn follow-user-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds       (:ds req)
-            username (get-in req [:path-params :username])
-            user     (db.users/find-by-username ds username)]
+  (let [identity (:identity req)
+        ds       (:ds req)
+        username (get-in req [:path-params :username])
+        user     (db.users/find-by-username ds username)]
+    (if-not user
+      {:status 404 :body {:errors {:profile ["not found"]}}}
+      (do 
         (db.follows/follow! ds (:user-id identity) (:users/id user))
         {:status 200 :body {:profile (profile-response user true)}}))))
 
 (defn unfollow-user-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds       (:ds req)
-            username (get-in req [:path-params :username])
-            user     (db.users/find-by-username ds username)]
+  (let [identity (:identity req)
+        ds       (:ds req)
+        username (get-in req [:path-params :username])
+        user     (db.users/find-by-username ds username)]
+    (if-not user
+      {:status 404 :body {:errors {:profile ["not found"]}}}
+      (do 
         (db.follows/unfollow! ds (:user-id identity) (:users/id user))
         {:status 200 :body {:profile (profile-response user false)}}))))
 
@@ -184,67 +186,68 @@
         articles (db.articles/list-articles ds params)
         cnt      (db.articles/count-articles ds params)]
     {:status 200
-     :body   {:articles      (mapv #(build-article-response ds % user-id) articles)
+     :body   {:articles      (mapv #(build-article-summary ds % user-id) articles)
               :articlesCount cnt}}))
 
 (defn get-feed-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds       (:ds req)
-            user-id  (:user-id identity)
-            params   (get-in req [:parameters :query])
-            articles (db.articles/get-feed ds user-id params)
-            cnt      (db.articles/count-feed ds user-id)]
-        {:status 200
-         :body   {:articles      (mapv #(build-article-response ds % user-id) articles)
-                  :articlesCount cnt}}))))
+  (let [identity (:identity req)
+        ds       (:ds req)
+        user-id  (:user-id identity)
+        params   (get-in req [:parameters :query])
+        articles (db.articles/get-feed ds user-id params)
+        cnt      (db.articles/count-feed ds user-id)]
+    {:status 200
+     :body   {:articles      (mapv #(build-article-summary ds % user-id) articles)
+              :articlesCount cnt}}))
 
 (defn get-article-handler [req]
   (let [ds      (:ds req)
         slug    (get-in req [:path-params :slug])
         article (db.articles/find-by-slug ds slug)]
     (if-not article
-      {:status 404 :body (err "Article not found")}
+      {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
       {:status 200
        :body   {:article (build-article-response ds article (:user-id (:identity req)))}})))
 
 (defn create-article-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds      (:ds req)
-            user-id (:user-id identity)
-            data    (get-in req [:parameters :body :article])
-            row     (db.articles/create! ds user-id data)
-            article (db.articles/find-by-slug ds (:articles/slug row))]
-        {:status 201
-         :body   {:article (build-article-response ds article user-id)}}))))
+  (let [identity (:identity req)
+        ds      (:ds req)
+        user-id (:user-id identity)
+        data    (get-in req [:parameters :body :article])
+        row     (db.articles/create! ds user-id data)
+        article (db.articles/find-by-slug ds (:articles/slug row))]
+    {:status 201
+     :body   {:article (build-article-response ds article user-id)}}))
 
 (defn update-article-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds      (:ds req)
-            user-id (:user-id identity)
-            slug    (get-in req [:path-params :slug])
-            data    (get-in req [:parameters :body :article])
-            row     (db.articles/update! ds slug user-id data)]
-        (if-not row
-          {:status 404 :body (err "Article not found")}
-          (let [article (db.articles/find-by-slug ds (:articles/slug row))]
-            {:status 200
-             :body   {:article (build-article-response ds article user-id)}}))))))
+  (let [identity (:identity req)
+        ds      (:ds req)
+        user-id (:user-id identity)
+        slug    (get-in req [:path-params :slug])
+        article (db.articles/find-by-slug ds slug)]
+    (println "update article: " article)
+    (if-not article
+      {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
+      (if-let [has-permission? (= user-id (:author_id article))]
+        (let [data (get-in req [:parameters :body :article])
+              _ (db.articles/update! ds slug user-id data)
+              updated-article (db.articles/find-by-slug ds slug)]
+          {:status 200
+           :body   {:article (build-article-response ds updated-article user-id)}})
+        {:status 403 :body (err-key :article "forbidden")}))))
 
 (defn delete-article-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds      (:ds req)
-            user-id (:user-id identity)
-            slug    (get-in req [:path-params :slug])]
-        (db.articles/delete! ds slug user-id)
-        {:status 200 :body {}}))))
+  (let [identity (:identity req)
+        ds      (:ds req)
+        user-id (:user-id identity)
+        slug    (get-in req [:path-params :slug])
+        article (db.articles/find-by-slug ds slug)]
+    (if-not article
+      {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
+      (if-let [has-permission? (= user-id (:author_id article))]
+        (let [_ (db.articles/delete! ds slug user-id)]
+          {:status 204 :body   {}})
+        {:status 403 :body (err-key :article "forbidden")}))))
 
 ;; ── comment handlers ──────────────────────────────────────────────────────────
 
@@ -254,68 +257,69 @@
         identity (:identity req)
         article  (db.articles/find-by-slug ds slug)]
     (if-not article
-      {:status 404 :body (err "Article not found")}
+      {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
       (let [comments (db.comments/find-by-article ds (:id article))]
         {:status 200
          :body   {:comments (mapv #(build-comment-response ds % (:user-id identity)) comments)}}))))
 
 (defn add-comment-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds      (:ds req)
-            user-id (:user-id identity)
-            slug    (get-in req [:path-params :slug])
-            body    (get-in req [:parameters :body :comment :body])
-            article (db.articles/find-by-slug ds slug)]
-        (if-not article
-          {:status 404 :body (err "Article not found")}
-          (let [row     (db.comments/create! ds user-id (:id article) body)
-                comment (db.comments/find-by-id ds (:comments/id row))]
-            {:status 201
-             :body   {:comment (build-comment-response ds comment user-id)}}))))))
+  (let [identity (:identity req)
+        ds      (:ds req)
+        user-id (:user-id identity)
+        slug    (get-in req [:path-params :slug])
+        body    (get-in req [:parameters :body :comment :body])
+        article (db.articles/find-by-slug ds slug)]
+    (if-not article
+      {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
+      (let [row     (db.comments/create! ds user-id (:id article) body)
+            comment (db.comments/find-by-id ds (:comments/id row))]
+        {:status 201
+         :body   {:comment (build-comment-response ds comment user-id)}}))))
 
 (defn delete-comment-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds         (:ds req)
-            user-id    (:user-id identity)
-            comment-id (parse-long (get-in req [:path-params :id]))]
-        (db.comments/delete! ds comment-id user-id)
-        {:status 200 :body {}}))))
+  (let [identity (:identity req)
+        ds         (:ds req)
+        user-id    (:user-id identity)
+        slug    (get-in req [:path-params :slug])
+        comment-id (parse-long (get-in req [:path-params :id]))
+        article (db.articles/find-by-slug ds slug)
+        comment (db.comments/find-by-id ds comment-id)]
+    (if-not article
+      {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
+      (if-not comment
+        {:status 404 :body (err-key :comment "not found")}
+        (if-let [has-permissions? (= user-id (:author_id comment))]
+          (let [_ (db.comments/delete! ds comment-id user-id)]
+            {:status 204 :body {}})
+          {:status 403 :body (err-key :comment "forbidden")})))))
 
 ;; ── favorite handlers ─────────────────────────────────────────────────────────
 
 (defn favorite-article-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds      (:ds req)
-            user-id (:user-id identity)
-            slug    (get-in req [:path-params :slug])
-            article (db.articles/find-by-slug ds slug)]
-        (if-not article
-          {:status 404 :body (err "Article not found")}
-          (do
-            (db.favorites/favorite! ds user-id (:id article))
-            {:status 200
-             :body   {:article (build-article-response ds article user-id)}}))))))
+  (let [identity (:identity req)
+        ds      (:ds req)
+        user-id (:user-id identity)
+        slug    (get-in req [:path-params :slug])
+        article (db.articles/find-by-slug ds slug)]
+    (if-not article
+      {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
+      (do
+        (db.favorites/favorite! ds user-id (:id article))
+        {:status 200
+         :body   {:article (build-article-response ds article user-id)}}))))
 
 (defn unfavorite-article-handler [req]
-  (let [identity (:identity req)]
-    (if-not identity
-      {:status 401 :body (err "Unauthorized")}
-      (let [ds      (:ds req)
-            user-id (:user-id identity)
-            slug    (get-in req [:path-params :slug])
-            article (db.articles/find-by-slug ds slug)]
-        (if-not article
-          {:status 404 :body (err "Article not found")}
-          (do
-            (db.favorites/unfavorite! ds user-id (:id article))
-            {:status 200
-             :body   {:article (build-article-response ds article user-id)}}))))))
+  (let [identity (:identity req)
+        ds      (:ds req)
+        user-id (:user-id identity)
+        slug    (get-in req [:path-params :slug])
+        article (db.articles/find-by-slug ds slug)]
+    (if-not article
+      {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
+      (do
+        (db.favorites/unfavorite! ds user-id (:id article))
+        {:status 200
+         :body   {:article (build-article-response ds article user-id)}}))))
 
 ;; ── tags handler ──────────────────────────────────────────────────────────────
 
@@ -324,6 +328,64 @@
    :body   {:tags (db.tags/list-all (:ds req))}})
 
 ;; ── router ────────────────────────────────────────────────────────────────────
+
+
+(defn wrap-db
+  [handler ds]
+  (fn [req]
+    (handler (assoc req :ds ds))))
+
+(defn wrap-secret
+  [handler secret]
+  (fn [req]
+    (handler (assoc req :secret secret))))
+
+(defn wrap-auth
+  [handler secret]
+  (fn [req]
+    (let [_identity (some-> (auth/extract-token req) (auth/verify-token secret))
+          require-auth? (get-in req [:reitit.core/match :data :auth])]
+      (if (and require-auth? (nil? _identity))
+        {:status 401 :body {:errors {:token ["is missing"]}}}
+        (handler (assoc req :identity _identity))))))
+
+(defn make-auth-middleware [secret]
+  {:name ::require-auth
+   :wrap (fn [handler]
+           (fn [req]
+             (let [identity    (some-> (auth/extract-token req) (auth/verify-token secret))
+                   match-data (get-in req [:reitit.core/match :data])
+                   method (:request-method req)
+                   needs-auth? (get (get match-data method) :auth (get match-data :auth))]
+               (if (and needs-auth? (nil? identity))
+                 {:status 401 :body {:errors {:token ["is missing"]}}}
+                 (handler (assoc req :identity identity))))))})
+
+(def coercion-error-middleware
+  (exception/create-exception-middleware
+   (merge
+    exception/default-handlers
+    {:reitit.coercion/request-coercion
+     (fn [e _]
+       (println "coercion error:" (type e) (ex-message e))
+       (let [exdata (ex-data e)
+             humanized (me/humanize {:schema (:schema exdata)
+                                     :value (:value exdata)
+                                     :errors (:errors exdata)})
+             errors (if (and (map? humanized) (= 1 (count humanized)))
+                      (first (vals humanized)) ;; unwrap {:article {...}} -> {...}
+                      humanized)]
+         (println "ex-data: " (ex-data e))
+         (println "errors: " errors)
+         {:status 422
+          :body {:errors errors}
+          }))
+     
+     :reitit.ring.middleware.exception/default
+     (fn [e _]
+       (println "unhandled exception:" (type e) (ex-message e))
+       {:status 500
+        :body (err (ex-message e))})})))
 
 (defn create-app
   [ds secret]
@@ -335,21 +397,20 @@
          {:post {:handler    #'user-login-handler
                  :parameters {:body [:map [:user schema/LoginCredentials]]}}}]
         ["/api/user"
-         {:get #'get-user-handler
+         {:auth true
+          :get #'get-user-handler
           :put {:handler    #'update-user-handler
-                :parameters {:body [:map [:user [:map
-                                                 [:email    {:optional true} :string]
-                                                 [:username {:optional true} :string]
-                                                 [:bio      {:optional true} :string]
-                                                 [:image    {:optional true} :string]
-                                                 [:password {:optional true} :string]]]]}}}]
+                :parameters {:body [:map [:user schema/UpdateUser]]}}}]
         ["/api/profiles/:username"
          {:get #'get-profile-handler}]
         ["/api/profiles/:username/follow"
-         {:post   #'follow-user-handler
+         {:auth true
+          :post   #'follow-user-handler
           :delete #'unfollow-user-handler}]
         ["/api/articles"
-         ["" {:get  {:handler    #'list-articles-handler
+         {:auth true}
+         ["" {:get  {:auth false ; overwrite - no auth needed
+                     :handler    #'list-articles-handler
                      :parameters {:query schema/ArticleFilters}}
               :post {:handler    #'create-article-handler
                      :parameters {:body [:map [:article schema/NewArticle]]}}}]
@@ -357,12 +418,14 @@
           {:get {:handler    #'get-feed-handler
                  :parameters {:query schema/FeedFilters}}}]
          ["/:slug"
-          {:get    #'get-article-handler
+          {:get    {:auth false
+                    :handler #'get-article-handler}
            :put    {:handler    #'update-article-handler
                     :parameters {:body [:map [:article schema/UpdateArticle]]}}
            :delete #'delete-article-handler}]
          ["/:slug/comments"
-          {:get  #'get-comments-handler
+          {:get  {:auth false
+                  :handler #'get-comments-handler}
            :post {:handler    #'add-comment-handler
                   :parameters {:body [:map [:comment schema/NewComment]]}}}]
          ["/:slug/comments/:id"
@@ -377,12 +440,13 @@
                :coercion   malli-coercion/coercion
                :middleware [parameters/parameters-middleware
                             muuntaja/format-negotiate-middleware
-                            coercion/coerce-exceptions-middleware
                             muuntaja/format-response-middleware
+                            coercion-error-middleware
                             muuntaja/format-request-middleware
+                            (make-auth-middleware secret)
                             coercion/coerce-request-middleware
-                            coercion/coerce-response-middleware]}})
+                            coercion/coerce-response-middleware
+                            ]}})
       (ring/ring-handler (ring/create-default-handler))
       (wrap-db ds)
-      (wrap-secret secret)
-      (auth/wrap-auth secret)))
+      (wrap-secret secret)))
