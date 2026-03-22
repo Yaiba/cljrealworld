@@ -4,8 +4,8 @@
 
 This project is a **learning-by-building** exercise for someone who knows basic Clojure
 syntax but has zero experience building real applications with Clojure or ClojureScript.
-Throughout those exercises, user will learn more Clojure idioms, debug technics and the 
-workflow of Clojure project development and deployment.
+Throughout those exercises, user will learn more Clojure/ClojureScript idioms, debug technics and the 
+workflow of Clojure/ClojureScript project development and deployment.
 
 The goal is to implement the [RealWorld spec](https://docs.realworld.show/introduction/) —
 a Medium.com clone — using a full Clojure stack. The project is deliberately structured

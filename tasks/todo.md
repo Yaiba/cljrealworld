@@ -123,19 +123,19 @@
 **Estimated time**: ~3–4 days (parallel with Stage 3)
 
 ### 4.1 clojure.test basics
-- [ ] Write first `deftest` for a pure function (no HTTP, no DB)
-- [ ] Use `is`, `are`, `testing` blocks
-- [ ] Run tests from the REPL: `(clojure.test/run-tests)`
+- [x] Write first `deftest` for a pure function (no HTTP, no DB)
+- [x] Use `is`, `are`, `testing` blocks
+- [x] Run tests from the REPL: `(clojure.test/run-tests)`
 
 ### 4.2 kaocha test runner
-- [ ] Add kaocha, configure `tests.edn`
-- [ ] Run `clj -M:test` in watch mode
-- [ ] Understand kaocha plugins (output, diff)
+- [x] Add kaocha, configure `tests.edn`
+- [x] Run `clj -M:test` in watch mode
+- [x] Understand kaocha plugins (output, diff)
 
 ### 4.3 Handler tests
-- [ ] Test Ring handlers directly (no HTTP): call handler with mock request map
-- [ ] Use `with-redefs` to mock DB calls
-- [ ] Test middleware in isolation
+- [x] Test Ring handlers directly (no HTTP): call handler with mock request map
+- [x] Use `with-redefs` to mock DB calls
+- [x] Test middleware in isolation
 
 ### 4.4 Official RealWorld test suite
 - [x] Install Hurl (`brew install hurl`)
