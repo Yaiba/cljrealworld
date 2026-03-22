@@ -1,24 +1,26 @@
-# RealWorld Clojure/ClojureScript — Project Context
+# RealWorld Clojure + Datastar — Project Context
 
 ## Purpose
 
 This project is a **learning-by-building** exercise for someone who knows basic Clojure
-syntax but has zero experience building real applications with Clojure or ClojureScript.
-Throughout those exercises, user will learn more Clojure/ClojureScript idioms, debug technics and the 
-workflow of Clojure/ClojureScript project development and deployment.
+syntax but has zero experience building real applications with Clojure.
+Throughout those exercises, the user will learn Clojure idioms, debugging techniques, and the
+workflow of Clojure project development and deployment.
 
 The goal is to implement the [RealWorld spec](https://docs.realworld.show/introduction/) —
-a Medium.com clone — using a full Clojure stack. The project is deliberately structured
-as a **staged curriculum** so each stage teaches a new layer of the real-world Clojure
-ecosystem, including tooling, libraries, and REPL-driven development practices.
+a Medium.com clone — using Clojure on both backend and frontend (no ClojureScript).
+The frontend is server-rendered HTML (Hiccup) with [Datastar](https://data-star.dev) for
+interactivity. The project is deliberately structured as a **staged curriculum** so each
+stage teaches a new layer of the real-world Clojure ecosystem, including tooling, libraries,
+and REPL-driven development practices.
 
-Never write Clojure code for user. Always ask them to write code from the REPL, and guide them through the process. The REPL is the primary interface for learning and development in this project, not a terminal or editor commands.
+Never write Clojure code for the user. Always ask them to write code from the REPL, and guide them through the process. The REPL is the primary interface for learning and development in this project, not terminal or editor commands.
 
 ## What is RealWorld?
 
 RealWorld is a standardised spec for a Medium-clone that includes:
 - A **REST API backend** with 20 endpoints (auth, users, articles, comments, tags, favorites)
-- A **frontend SPA** with 7 pages (home, login/register, editor, article, profile, settings)
+- A **frontend** with 7 pages (home, login/register, editor, article, profile, settings)
 - An official Hurl test suite that validates spec compliance
 
 See: https://docs.realworld.show/introduction/
@@ -27,15 +29,15 @@ See: https://docs.realworld.show/introduction/
 
 - Basic Clojure syntax
 - **No** experience with Clojure tooling, libraries, or project structure
-- **No** ClojureScript experience
+- **No** ClojureScript experience (and we are not using it)
 
 ## Learning Goals
 
 Beyond just building the app, the learner wants to understand:
-1. Real-world Clojure tooling (Clojure CLI, deps.edn, shadow-cljs)
+1. Real-world Clojure tooling (Clojure CLI, deps.edn)
 2. REPL-driven development workflow
 3. Backend patterns: Ring middleware, routing, DB access, auth
-4. Frontend patterns: Reagent, re-frame, ClojureScript build pipeline
+4. Frontend patterns: server-rendered Hiccup, Datastar SSE fragments, cookie auth
 5. Testing idioms in Clojure
 
 ## Tech Stack
@@ -49,15 +51,14 @@ Beyond just building the app, the learner wants to understand:
 - **next.jdbc** — JDBC database wrapper
 - **HoneySQL** — SQL as Clojure data
 - **Integrant** — system lifecycle management
-- **buddy-auth** — JWT authentication
+- **buddy-auth** — JWT signing/verification
 - **malli** — schema validation
+- **Hiccup** — server-side HTML templating
 
-### Frontend (ClojureScript)
-- **shadow-cljs** — ClojureScript build tool
-- **Reagent** — React bindings (hiccup syntax)
-- **re-frame** — state management (event/subscription model)
-- **reitit** — client-side routing
-- **re-frame-http-fx** — HTTP effects
+### Frontend
+- **Datastar** — loaded from CDN; signals + SSE fragment merging (no build step)
+- Auth via **HttpOnly JWT cookie** — server sets on login, middleware reads on every HTML request
+- No ClojureScript, no npm, no build pipeline
 
 ### Tooling / Dev
 - **nREPL** — editor-connected REPL
@@ -71,23 +72,18 @@ Beyond just building the app, the learner wants to understand:
 ```
 cljrealworld/
 ├── AGENTS.md               ← this file
-├── deps.edn                ← backend deps + aliases
-├── shadow-cljs.edn         ← frontend build config
+├── deps.edn                ← deps + aliases
 ├── src/
-│   ├── backend/
-│   │   ├── core.clj        ← entry point + Integrant system config
-│   │   ├── routes.clj      ← all API routes
-│   │   ├── auth.clj        ← JWT middleware
-│   │   ├── db/             ← next.jdbc queries, one ns per domain
-│   │   └── handlers/       ← request handlers, one ns per domain
-│   └── frontend/
-│       ├── core.cljs       ← app entry, re-frame init
-│       ├── routes.cljs     ← reitit frontend routes
-│       ├── events.cljs     ← re-frame event handlers
-│       ├── subs.cljs       ← re-frame subscriptions
-│       └── views/          ← one ns per page
+│   └── realworld/
+│       ├── core.clj        ← entry point + Integrant system config
+│       ├── routes.clj      ← API routes (/api/*) + HTML routes
+│       ├── auth.clj        ← JWT sign/verify + cookie middleware
+│       ├── sse.clj         ← Datastar SSE response helpers
+│       ├── db/             ← next.jdbc queries, one ns per domain
+│       ├── handlers/       ← JSON API handlers, one ns per domain
+│       └── views/          ← Hiccup page/component functions, one ns per page
 ├── test/
-│   └── backend/
+│   └── realworld/
 └── dev/
     └── user.clj            ← REPL dev helpers (integrant reset etc.)
 ```

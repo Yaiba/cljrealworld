@@ -1,4 +1,4 @@
-# RealWorld Clojure/ClojureScript — Learning Progress
+# RealWorld Clojure + Datastar — Learning Progress
 
 ## Current Stage: Stage 1 — Tooling & REPL Mastery
 
@@ -147,94 +147,86 @@
 
 ---
 
-## Stage 5: ClojureScript Frontend Foundation
-**Goal**: Understand the ClojureScript build pipeline. Get re-frame's event loop in your head.
+## Stage 5: Datastar Frontend Foundation
+**Goal**: Understand the Datastar model (signals + SSE fragments). Serve HTML from Clojure with no build step.
 **Estimated time**: ~1 week
 
-### 5.1 shadow-cljs setup
-- [ ] Add `shadow-cljs.edn` with `:app` build
-- [ ] Add Reagent, re-frame, reitit to ClojureScript deps
-- [ ] Start `npx shadow-cljs watch app` — get browser connected
-- [ ] Open ClojureScript browser REPL from editor
-- [ ] Evaluate a ClojureScript expression that modifies the DOM live
+### 5.1 Server-side HTML setup
+- [ ] Add Hiccup to `deps.edn` for HTML templating
+- [ ] Add a `/` route to your Reitit router that returns `text/html`
+- [ ] Write a `views/layout.clj` with a base HTML shell that loads Datastar from CDN (`<script type="module" src="https://cdn.jsdelivr.net/npm/@starfederation/datastar">`)
+- [ ] Verify: hitting `/` in the browser returns a styled page
 
-### 5.2 Reagent basics
-- [ ] Write a component as a function returning hiccup
-- [ ] Use `r/atom` for local state
-- [ ] Understand: when does a component re-render?
-- [ ] Build a standalone counter component from REPL
+### 5.2 Datastar fundamentals
+- [ ] Understand the three core primitives: `data-signals` (client state), `data-on-*` (event → server call), `data-bind` (two-way input binding)
+- [ ] Understand SSE responses: Datastar reads a stream of `event: datastar-merge-fragments` + `data: <fragment>` chunks
+- [ ] Write a hello-world: a button with `data-on-click="@get('/hello')"` that server-responds with a merged `<div>`
+- [ ] Understand: Datastar replaces/merges DOM fragments by `id` — your server owns the HTML
 
-### 5.3 re-frame fundamentals
-- [ ] Understand the 6-domino cycle: event → handler → db → subscription → view → DOM
-- [ ] Define `app-db` shape for the whole app
-- [ ] Write first event handler with `reg-event-db`
-- [ ] Write first subscription with `reg-sub`
-- [ ] Wire a view component to a subscription
+### 5.3 SSE response helpers
+- [ ] Write `sse.clj` with helpers: `merge-fragment`, `merge-signals`, `remove-fragments`
+- [ ] Understand Ring's `:body` as an `InputStream` for streaming SSE
+- [ ] Test from REPL: call your SSE handler and inspect the raw stream output
 
-### 5.4 HTTP calls
-- [ ] Add re-frame-http-fx
-- [ ] Write an event that fires an HTTP GET to your backend `/api/tags`
-- [ ] Store response in `app-db`, display in a component
+### 5.4 Auth flow with Datastar
+- [ ] Login page: form fields bound with `data-bind`, submit with `data-on-submit="@post('/login')"`
+- [ ] Server validates credentials, signs a JWT, sets it as an `HttpOnly` cookie (`Set-Cookie: token=...; HttpOnly; Path=/`)
+- [ ] Write Ring middleware for HTML routes: reads JWT from cookie, verifies it, injects `:identity` into request — no `Authorization` header needed
+- [ ] Protect HTML routes with the middleware; redirect to `/login` if cookie is absent or invalid
+- [ ] Note: existing `/api/*` JSON routes keep `Authorization: Token` header auth unchanged (Hurl tests stay green)
 
-### 5.5 Routing
-- [ ] Configure reitit-frontend with `push-state`
-- [ ] Define routes as data (mirrors backend routing style)
-- [ ] Navigate between two pages from REPL: `(rf/dispatch [:navigate :home])`
+### 5.5 Stage 5 mini-app
+- [ ] Login page → authenticate → redirect to home
+- [ ] Home page: server renders article feed HTML, tags sidebar
+- [ ] Navigation between pages via normal `<a>` links (no JS router needed)
 
-### 5.6 Stage 5 mini-app
-- [ ] Login page: form → POST `/api/users/login` → store JWT in `app-db` + localStorage
-- [ ] Home page: fetch + display global article feed
-- [ ] Routing between login ↔ home
-
-**Stage 5 complete when**: You can log in and see the article feed in the browser.
+**Stage 5 complete when**: You can log in and see the article feed rendered by the server.
 
 ---
 
 ## Stage 6: Frontend Complete
-**Goal**: Build all 7 pages. Wire up all API calls. Polish error states.
+**Goal**: Build all 7 pages as server-rendered Hiccup with Datastar for interactive fragments.
 **Estimated time**: ~2–3 weeks
 
 ### 6.1 Page: Home (`/`)
 - [ ] Global feed tab + personal feed tab (auth required)
 - [ ] Tag sidebar from `GET /api/tags`
-- [ ] Tag filter: click tag → filtered feed
-- [ ] Pagination
+- [ ] Tag filter: clicking a tag fires `@get('/articles?tag=...')` → server returns updated feed fragment
+- [ ] Pagination via Datastar signals + server-rendered page fragments
 
 ### 6.2 Page: Auth (`/login`, `/register`)
-- [ ] Login form with error display
-- [ ] Register form with error display
-- [ ] Redirect to home on success
-- [ ] Persist JWT to localStorage, restore on page reload
+- [ ] Login form with inline error display (server merges error fragment on failure)
+- [ ] Register form with inline error display
+- [ ] On success: server sets cookie + returns redirect signal (`data-signals` `{location: '/'}`)
 
 ### 6.3 Page: Settings (`/settings`)
-- [ ] Pre-fill form from current user data
-- [ ] `PUT /api/user` on submit
-- [ ] Logout button (clear app-db + localStorage)
+- [ ] Server pre-fills form from current user on page load
+- [ ] Form submit → `@put('/api/user')` → server merges success/error fragment
+- [ ] Logout button → server clears cookie → redirect to home
 
 ### 6.4 Page: Editor (`/editor`, `/editor/:slug`)
-- [ ] Create new article: `POST /api/articles`
-- [ ] Edit existing article: `PUT /api/articles/:slug`
-- [ ] Tag input (add/remove tags as chips)
+- [ ] Create article: form submit → `@post('/api/articles')` → redirect to article page
+- [ ] Edit article: server pre-fills form, `@put('/api/articles/:slug')`
+- [ ] Tag input: add/remove tags as chips using Datastar signals for local chip state
 
 ### 6.5 Page: Article (`/article/:slug`)
-- [ ] Render article body as Markdown (JS interop with `marked`)
-- [ ] Display comments
-- [ ] Post comment / delete comment
-- [ ] Favorite / unfavorite button
-- [ ] Follow / unfollow author button
+- [ ] Server renders article body as Markdown (use a JVM Markdown lib like `commonmark-java`)
+- [ ] Comments section: server renders comments HTML
+- [ ] Post comment: `@post(...)` → server returns new comment fragment merged into list
+- [ ] Delete comment: `@delete(...)` → server returns `datastar-remove-fragments`
+- [ ] Favorite / follow buttons: `@post(...)` → server merges updated button fragment
 
 ### 6.6 Page: Profile (`/profile/:username`)
-- [ ] User's articles tab
-- [ ] Favorited articles tab
-- [ ] Follow / unfollow button
+- [ ] User's articles tab / favorited articles tab — tab switch via `@get(...)` fragment swap
+- [ ] Follow / unfollow button as a mergeable fragment
 
 ### 6.7 Polish
-- [ ] Loading states for all async operations
-- [ ] Error states with user-friendly messages
-- [ ] Auth-gated routes (redirect to login if not authenticated)
-- [ ] 404 page
+- [ ] Loading states: use `data-on-*__loading` modifier or a global signal to show spinners
+- [ ] Error fragments: consistent server-rendered error banner component
+- [ ] Auth-gated routes: Ring middleware redirects unauthenticated requests
+- [ ] 404 page as a standard Ring handler
 
-**Stage 6 complete when**: All 7 pages work end-to-end with the real backend.
+**Stage 6 complete when**: All 7 pages work end-to-end, driven by server-rendered HTML and Datastar fragment merges.
 
 ---
 
