@@ -360,6 +360,24 @@
         {:status 401 :body {:errors {:token ["is missing"]}}}
         (handler (assoc req :identity _identity))))))
 
+(defn make-cookie-auth-middleware
+  [secret]
+  {:name ::require-auth-cookie
+   :wrap (fn [handler]
+           (fn [req]
+             (let [token (some-> (get-in req [:headers "cookie"])
+                                 (clojure.string/split #"; ")
+                                 (->> (filter #(clojure.string/starts-with? % "token=")))
+                                 first
+                                 (subs (count "token=")))
+                   _identity (when token (auth/verify-token token secret))
+                   match-data (get-in req [:reitit.core/match :data])
+                   method (:request-method req)
+                   needs-auth? (get (get match-data method) :auth (get match-data :auth))]
+               (if (and needs-auth? (nil? _identity))
+                 {:status 302 :headers {"Location" "/login"} :body ""}
+                 (handler (assoc req :identity _identity))))))})
+
 (defn make-auth-middleware [secret]
   {:name ::require-auth
    :wrap (fn [handler]
@@ -460,17 +478,19 @@
                             ]}})))
 
 (defn create-html-router
-  []
+  [secret]
   (-> (ring/router
-       [["/" {:get {:handler #'html/index-handler}}]
-        ["/hello" {:get {:handler #'html/hello-handler}}]
+       [["/" {:get {:handler #'html/home-handler}}]
+        ["/hello" {:auth true 
+                   :get {:handler #'html/hello-handler}}]
         ["/login" {:get {:handler #'html/login-handler}
-                   :post {:handler #'html/login-post-handler}}]])))
+                   :post {:handler #'html/login-post-handler}}]]
+       {:data {:middleware [(make-cookie-auth-middleware secret)]}})))
 
 (defn create-app
   [ds secret]
   (-> (ring/routes
-       (ring/ring-handler (create-html-router))
+       (ring/ring-handler (create-html-router secret))
        (ring/ring-handler (create-api-router secret))
        default-handler) ;plain handler, catches everything that fell through 
       (wrap-db ds)

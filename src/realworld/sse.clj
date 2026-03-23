@@ -1,6 +1,7 @@
 (ns realworld.sse
   (:require [hiccup2.core :as hi]))
 
+;; raw helper to generate SSE response for datastar
 
 (defn merge-fragment
   [html]

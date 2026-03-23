@@ -23,15 +23,13 @@
 
 (defn start
   [] 
-  (reset! system (ig/init config))
-  (start-portal))
+  (reset! system (ig/init config)))
 
 (defn stop
   []
   (when @system 
     (ig/halt! @system))
-  (reset! system nil)
-  (stop-portal))
+  (reset! system nil))
 
 (defn reset
   []

@@ -170,18 +170,21 @@
 - [x] Understand: for a single response a plain string body works; `InputStream` needed only for true streaming
 
 ### 5.4 Auth flow with Datastar
-- [ ] Login page: form fields bound with `data-bind`, submit with `data-on-submit="@post('/login')"`
-- [ ] Server validates credentials, signs a JWT, sets it as an `HttpOnly` cookie (`Set-Cookie: token=...; HttpOnly; Path=/`)
-- [ ] Write Ring middleware for HTML routes: reads JWT from cookie, verifies it, injects `:identity` into request — no `Authorization` header needed
-- [ ] Protect HTML routes with the middleware; redirect to `/login` if cookie is absent or invalid
-- [ ] Note: existing `/api/*` JSON routes keep `Authorization: Token` header auth unchanged (Hurl tests stay green)
+- [x] Login page: form fields bound with `data-bind`, submit with `data-on:submit="@post(\"/login\")"`
+- [x] Server validates credentials, signs a JWT, sets it as an `HttpOnly` cookie (`Set-Cookie: token=...; HttpOnly; Path=/`)
+- [x] Write `make-cookie-auth-middleware` in `server.clj`: reads JWT from cookie, verifies it, injects `:identity` into request
+- [x] Apply middleware to HTML router only; redirect to `/login` if cookie absent or invalid
+- [x] Existing `/api/*` JSON routes keep `Authorization: Token` header auth unchanged (Hurl tests stay green)
+- [x] Use official Clojure Datastar SDK (`dev.data-star.clojure/http-kit`) for SSE responses
 
 ### 5.5 Stage 5 mini-app
-- [ ] Login page → authenticate → redirect to home
-- [ ] Home page: server renders article feed HTML, tags sidebar
-- [ ] Navigation between pages via normal `<a>` links (no JS router needed)
+- [x] Login page → authenticate → redirect to home
+- [x] Home page: server renders article feed HTML
+- [x] Navigation between pages via normal `<a>` links (no JS router needed)
 
 **Stage 5 complete when**: You can log in and see the article feed rendered by the server.
+
+**Stage 5 complete ✓**
 
 ---
 
