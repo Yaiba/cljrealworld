@@ -152,21 +152,22 @@
 **Estimated time**: ~1 week
 
 ### 5.1 Server-side HTML setup
-- [ ] Add Hiccup to `deps.edn` for HTML templating
-- [ ] Add a `/` route to your Reitit router that returns `text/html`
-- [ ] Write a `views/layout.clj` with a base HTML shell that loads Datastar from CDN (`<script type="module" src="https://cdn.jsdelivr.net/npm/@starfederation/datastar">`)
-- [ ] Verify: hitting `/` in the browser returns a styled page
+- [x] Add Hiccup to `deps.edn` for HTML templating
+- [x] Add a `/` route to a separate HTML router (not the API router) that returns `text/html`
+- [x] Write a `views/layout.clj` with a base HTML shell that loads Datastar from CDN (`<script type="module" src="https://cdn.jsdelivr.net/npm/@starfederation/datastar@1.0.0-RC.8">`)
+- [x] Compose HTML router and API router with `ring/routes` — HTML router has no fallback handler so unmatched routes fall through to the API router
+- [x] Verify: hitting `/` in the browser returns a page
 
 ### 5.2 Datastar fundamentals
-- [ ] Understand the three core primitives: `data-signals` (client state), `data-on-*` (event → server call), `data-bind` (two-way input binding)
-- [ ] Understand SSE responses: Datastar reads a stream of `event: datastar-merge-fragments` + `data: <fragment>` chunks
-- [ ] Write a hello-world: a button with `data-on-click="@get('/hello')"` that server-responds with a merged `<div>`
-- [ ] Understand: Datastar replaces/merges DOM fragments by `id` — your server owns the HTML
+- [x] Understand the three core primitives: `data-signals` (client state), `data-on:*` (event → server call), `data-bind` (two-way input binding)
+- [x] Understand SSE responses: Datastar RC.8 uses `event: datastar-patch-elements` + `data: elements <fragment>` (not `datastar-merge-fragments`)
+- [x] Write a hello-world: a button with `data-on:click="@get(\"/hello\")"` that server-responds with a patched `<div>`
+- [x] Understand: Datastar patches DOM fragments by `id` — your server owns the HTML
+- [x] Note: attribute names use colon separator (`data-on:click`), not hyphen (`data-on-click`)
 
 ### 5.3 SSE response helpers
-- [ ] Write `sse.clj` with helpers: `merge-fragment`, `merge-signals`, `remove-fragments`
-- [ ] Understand Ring's `:body` as an `InputStream` for streaming SSE
-- [ ] Test from REPL: call your SSE handler and inspect the raw stream output
+- [x] Write `sse.clj` with `merge-fragment` helper using `datastar-patch-elements` event format
+- [x] Understand: for a single response a plain string body works; `InputStream` needed only for true streaming
 
 ### 5.4 Auth flow with Datastar
 - [ ] Login page: form fields bound with `data-bind`, submit with `data-on-submit="@post('/login')"`
@@ -227,6 +228,98 @@
 - [ ] 404 page as a standard Ring handler
 
 **Stage 6 complete when**: All 7 pages work end-to-end, driven by server-rendered HTML and Datastar fragment merges.
+
+---
+
+## Stage 7: ClojureScript Frontend Foundation
+**Goal**: Understand the ClojureScript build pipeline. Get re-frame's event loop in your head. You have already built the same UI in Hiccup+Datastar — use that mental model as a reference point.
+**Estimated time**: ~1 week
+
+### 7.1 shadow-cljs setup
+- [ ] Add `shadow-cljs.edn` with `:app` build
+- [ ] Add Reagent, re-frame, reitit to ClojureScript deps
+- [ ] Start `npx shadow-cljs watch app` — get browser connected
+- [ ] Open ClojureScript browser REPL from editor
+- [ ] Evaluate a ClojureScript expression that modifies the DOM live
+
+### 7.2 Reagent basics
+- [ ] Write a component as a function returning hiccup
+- [ ] Use `r/atom` for local state
+- [ ] Understand: when does a component re-render?
+- [ ] Build a standalone counter component from REPL
+
+### 7.3 re-frame fundamentals
+- [ ] Understand the 6-domino cycle: event → handler → db → subscription → view → DOM
+- [ ] Compare to Datastar: `app-db` ≈ signals, subscriptions ≈ derived signals, event handlers ≈ SSE responses
+- [ ] Define `app-db` shape for the whole app
+- [ ] Write first event handler with `reg-event-db`
+- [ ] Write first subscription with `reg-sub`
+- [ ] Wire a view component to a subscription
+
+### 7.4 HTTP calls
+- [ ] Add re-frame-http-fx
+- [ ] Write an event that fires an HTTP GET to your backend `/api/tags`
+- [ ] Store response in `app-db`, display in a component
+
+### 7.5 Routing
+- [ ] Configure reitit-frontend with `push-state`
+- [ ] Define routes as data (mirrors backend routing style)
+- [ ] Navigate between two pages from REPL: `(rf/dispatch [:navigate :home])`
+
+### 7.6 Stage 7 mini-app
+- [ ] Login page: form → POST `/api/users/login` → store JWT in `app-db` + localStorage
+- [ ] Home page: fetch + display global article feed
+- [ ] Routing between login ↔ home
+
+**Stage 7 complete when**: You can log in and see the article feed in the browser via the ClojureScript SPA.
+
+---
+
+## Stage 8: ClojureScript Frontend Complete
+**Goal**: Build all 7 pages in re-frame. Wire up all API calls. Compare the experience against the Datastar version you already built.
+**Estimated time**: ~2–3 weeks
+
+### 8.1 Page: Home (`/`)
+- [ ] Global feed tab + personal feed tab (auth required)
+- [ ] Tag sidebar from `GET /api/tags`
+- [ ] Tag filter: click tag → filtered feed
+- [ ] Pagination
+
+### 8.2 Page: Auth (`/login`, `/register`)
+- [ ] Login form with error display
+- [ ] Register form with error display
+- [ ] Redirect to home on success
+- [ ] Persist JWT to localStorage, restore on page reload
+
+### 8.3 Page: Settings (`/settings`)
+- [ ] Pre-fill form from current user data
+- [ ] `PUT /api/user` on submit
+- [ ] Logout button (clear app-db + localStorage)
+
+### 8.4 Page: Editor (`/editor`, `/editor/:slug`)
+- [ ] Create new article: `POST /api/articles`
+- [ ] Edit existing article: `PUT /api/articles/:slug`
+- [ ] Tag input (add/remove tags as chips)
+
+### 8.5 Page: Article (`/article/:slug`)
+- [ ] Render article body as Markdown (JS interop with `marked`)
+- [ ] Display comments
+- [ ] Post comment / delete comment
+- [ ] Favorite / unfavorite button
+- [ ] Follow / unfollow author button
+
+### 8.6 Page: Profile (`/profile/:username`)
+- [ ] User's articles tab
+- [ ] Favorited articles tab
+- [ ] Follow / unfollow button
+
+### 8.7 Polish
+- [ ] Loading states for all async operations
+- [ ] Error states with user-friendly messages
+- [ ] Auth-gated routes (redirect to login if not authenticated)
+- [ ] 404 page
+
+**Stage 8 complete when**: All 7 pages work end-to-end via the ClojureScript SPA hitting the same backend.
 
 ---
 

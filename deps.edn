@@ -12,7 +12,8 @@
         migratus/migratus {:mvn/version "1.5.4"}
         integrant/integrant {:mvn/version "1.0.1"}
         buddy/buddy-auth {:mvn/version "3.0.323"}
-        buddy/buddy-sign {:mvn/version "3.4.333"}}
+        buddy/buddy-sign {:mvn/version "3.4.333"}
+        hiccup/hiccup {:mvn/version "2.0.0"}}
 
  :aliases
  {:dev {:extra-deps {djblue/portal {:mvn/version "0.58.2"}

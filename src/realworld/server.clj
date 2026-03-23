@@ -14,7 +14,9 @@
             [realworld.schema :as schema]
             [reitit.coercion.malli :as malli-coercion]
             [reitit.ring.coercion :as coercion]
-            [malli.error :as me]))
+            [malli.error :as me]
+            [realworld.html :as html]
+            [realworld.views.layout :as layout]))
 
 (defn empty-string->nil
   [s]
@@ -329,6 +331,15 @@
 
 ;; ── router ────────────────────────────────────────────────────────────────────
 
+(defn default-handler
+  [req]
+  (if (clojure.string/includes? (get-in req [:headers "accept"] "") "text/html")
+    {:status 404
+     :headers {"Content-Type" "text/html"}
+     :body (layout/page "Not Found" [:h1 "404 — Page not found"])}
+    {:status 404
+     :headers {"Content-Type" "application/json"}
+     :body "{\"errors\":{\"body\":[\"not found\"]}}"}))
 
 (defn wrap-db
   [handler ds]
@@ -387,8 +398,8 @@
        {:status 500
         :body (err (ex-message e))})})))
 
-(defn create-app
-  [ds secret]
+(defn create-api-router
+  [secret]
   (-> (ring/router
        [["/api/users"
          {:post {:handler    #'create-user-handler
@@ -446,7 +457,21 @@
                             (make-auth-middleware secret)
                             coercion/coerce-request-middleware
                             coercion/coerce-response-middleware
-                            ]}})
-      (ring/ring-handler (ring/create-default-handler))
+                            ]}})))
+
+(defn create-html-router
+  []
+  (-> (ring/router
+       [["/" {:get {:handler #'html/index-handler}}]
+        ["/hello" {:get {:handler #'html/hello-handler}}]
+        ["/login" {:get {:handler #'html/login-handler}
+                   :post {:handler #'html/login-post-handler}}]])))
+
+(defn create-app
+  [ds secret]
+  (-> (ring/routes
+       (ring/ring-handler (create-html-router))
+       (ring/ring-handler (create-api-router secret))
+       default-handler) ;plain handler, catches everything that fell through 
       (wrap-db ds)
       (wrap-secret secret)))
