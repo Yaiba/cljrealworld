@@ -188,7 +188,11 @@
 
 ---
 
-## Stage 6: Frontend Complete
+## Stage 6: Frontend Complete (DEFERRED — returning after Stage 7 & 8)
+
+> **Decision**: Stage 6 requires building many new server-side handlers for each page. We're parking it to first complete the ClojureScript SPA (Stages 7–8), then come back to finish the Datastar frontend with more frontend experience.
+
+
 **Goal**: Build all 7 pages as server-rendered Hiccup with Datastar for interactive fragments.
 **Estimated time**: ~2–3 weeks
 

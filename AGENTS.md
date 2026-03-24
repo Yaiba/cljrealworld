@@ -4,8 +4,8 @@
 
 This project is a **learning-by-building** exercise for someone who knows basic Clojure
 syntax but has zero experience building real applications with Clojure or ClojureScript.
-Throughout those exercises, the user will learn Clojure idioms, debugging techniques, and the
-workflow of Clojure project development and deployment.
+NOTE: The user also knows not much about the frontend world. 
+Throughout those exercises, the user will learn Clojure/Script idioms, debugging techniques, and the workflow of Clojure/Script project development and deployment.
 
 The goal is to implement the [RealWorld spec](https://docs.realworld.show/introduction/) —
 a Medium.com clone — **twice on the frontend**: first using server-rendered Hiccup + Datastar,
