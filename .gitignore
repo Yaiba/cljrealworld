@@ -3,6 +3,11 @@
 .clj-kondo/.cache/
 target/
 
+# ClojureScript
+public/js/
+.shadow-cljs/
+node_modules/
+
 # nREPL
 .nrepl-port
 

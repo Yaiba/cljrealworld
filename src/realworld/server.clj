@@ -4,6 +4,7 @@
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.parameters :as parameters]
             [reitit.ring.middleware.exception :as exception]
+            [ring.middleware.file :as rfile]
             [realworld.db.users :as db.users]
             [realworld.db.follows :as db.follows]
             [realworld.db.articles :as db.articles]
@@ -331,12 +332,16 @@
 
 ;; ── router ────────────────────────────────────────────────────────────────────
 
+(defn spa-handler
+  []
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (slurp "public/index.html")})
+
 (defn default-handler
   [req]
   (if (clojure.string/includes? (get-in req [:headers "accept"] "") "text/html")
-    {:status 404
-     :headers {"Content-Type" "text/html"}
-     :body (layout/page "Not Found" [:h1 "404 — Page not found"])}
+    (spa-handler)
     {:status 404
      :headers {"Content-Type" "application/json"}
      :body "{\"errors\":{\"body\":[\"not found\"]}}"}))
@@ -490,8 +495,8 @@
 (defn create-app
   [ds secret]
   (-> (ring/routes
-       (ring/ring-handler (create-html-router secret))
        (ring/ring-handler (create-api-router secret))
        default-handler) ;plain handler, catches everything that fell through 
+      (ring.middleware.file/wrap-file "public")
       (wrap-db ds)
       (wrap-secret secret)))

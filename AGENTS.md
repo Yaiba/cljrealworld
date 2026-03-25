@@ -13,7 +13,7 @@ then rebuilt as a ClojureScript SPA with Reagent + re-frame. Both frontends hit 
 Clojure backend. The project is deliberately structured as a **staged curriculum** so each
 stage teaches a new layer of the real-world Clojure ecosystem.
 
-Never write Clojure code for the user. Always ask them to write code from the REPL, and guide them through the process. The REPL is the primary interface for learning and development in this project, not terminal or editor commands.
+Never write Clojure code for the user. Always ask them to write code in `comment` and try experiment it, and guide them through the process. The REPL is the primary interface for learning and development in this project, not terminal or editor commands.
 
 ## What is RealWorld?
 
@@ -37,7 +37,7 @@ Beyond just building the app, the learner wants to understand:
 2. REPL-driven development workflow
 3. Backend patterns: Ring middleware, routing, DB access, auth
 4. Frontend pattern 1: server-rendered Hiccup + Datastar SSE fragments (Stages 5–6)
-5. Frontend pattern 2: ClojureScript SPA with Reagent + re-frame (Stages 7–8)
+5. Frontend pattern 2: ClojureScript SPA with Replicant + DataScript + Nexus (Stages 7–8)
 6. Testing idioms in Clojure
 
 ## Tech Stack
@@ -61,11 +61,11 @@ Beyond just building the app, the learner wants to understand:
 
 ### Frontend — ClojureScript (Stages 7–8)
 - **shadow-cljs** — ClojureScript build tool
-- **Reagent** — React bindings (hiccup syntax)
-- **re-frame** — state management (event/subscription model)
-- **reitit** — client-side routing
-- **re-frame-http-fx** — HTTP effects
-- Auth via **JWT in localStorage** — stored in `app-db`, sent as `Authorization: Token` header
+- **Replicant** (`no.cjohansen/replicant`) — pure data UI; UI is a function of state, renders hiccup to DOM surgically, no React, no component-local state
+- **DataScript** (`datascript/datascript`) — client-side in-memory Datalog database; all app state lives here, queried with Datalog/pull syntax
+- **Nexus** (`no.cjohansen/nexus`) — action/effect dispatch system; actions are pure data vectors, effects are functions, keeps event handling pure and testable
+- **reitit** — client-side routing (data-driven, mirrors backend style)
+- Auth via **JWT in localStorage** — stored in DataScript, sent as `Authorization: Token` header
 
 ### Tooling / Dev
 - **nREPL** — editor-connected REPL
@@ -91,11 +91,12 @@ cljrealworld/
 │   │   ├── handlers/       ← JSON API handlers, one ns per domain
 │   │   └── views/          ← Hiccup page/component functions, one ns per page
 │   └── frontend/           ← ClojureScript SPA (Stages 7–8)
-│       ├── core.cljs       ← app entry, re-frame init
+│       ├── core.cljs       ← app entry, DataScript schema, Replicant + Nexus wiring
 │       ├── routes.cljs     ← reitit frontend routes
-│       ├── events.cljs     ← re-frame event handlers
-│       ├── subs.cljs       ← re-frame subscriptions
-│       └── views/          ← one ns per page
+│       ├── actions.cljs    ← Nexus pure action handlers (state → actions)
+│       ├── effects.cljs    ← Nexus effect functions (HTTP, localStorage, routing)
+│       ├── queries.cljs    ← DataScript query helpers (Datalog + pull)
+│       └── views/          ← one ns per page (pure hiccup functions)
 ├── test/
 │   └── realworld/
 └── dev/
