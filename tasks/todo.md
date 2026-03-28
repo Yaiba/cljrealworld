@@ -312,25 +312,25 @@
 ### 8.2 Nexus actions + effects — full API coverage
 - [x] Write `actions.cljc`: pure handlers split into own namespace
 - [x] Write `effects.cljs`: HTTP effect functions, each calls `d/transact!` on success
-- [ ] Write an `:http/request` effect that handles auth header injection (reads JWT from DataScript)
+- [x] Write an `:http/request` effect that handles auth header injection (reads JWT from DataScript)
 - [x] Split codebase: schema.cljc, constants.cljc, queries.cljc, actions.cljc, effects.cljs, routes.cljs, views/
 
 ### 8.3 Page: Home (`/`)
-- [ ] Global feed tab + personal feed tab (query DataScript for feed type)
-- [ ] Tag sidebar: transact tags from `GET /api/tags` on page load; query from DataScript for render
-- [ ] Tag filter: dispatch `[:feed/set-tag tag]` → transact filter into DataScript → hiccup re-renders
-- [ ] Pagination: store current page in DataScript; prev/next dispatch actions
+- [x] Global feed tab + personal feed tab (query DataScript for feed type)
+- [x] Tag sidebar: transact tags from `GET /api/tags` on page load; query from DataScript for render
+- [x] Tag filter: dispatch `[:feed/set-tag tag]` → transact filter into DataScript → hiccup re-renders
+- [x] Pagination: store current page in DataScript; prev/next dispatch actions
 
 ### 8.4 Page: Auth (`/login`, `/register`)
-- [ ] Login form: dispatch `[:user/login fields]` → HTTP effect → transact user + JWT → navigate
-- [ ] Register form: dispatch `[:user/register fields]`
-- [ ] Inline error display: transact errors into DataScript, query in view
-- [ ] On page load: check DataScript for existing JWT (restored from localStorage) → skip login if present
+- [x] Login form: dispatch `[:user/login fields]` → HTTP effect → transact user + JWT → navigate
+- [x] Register form: dispatch `[:user/register fields]`
+- [x] Inline error display: transact errors into DataScript, query in view
+- [x] On page load: check DataScript for existing JWT (restored from localStorage) → skip login if present
 
 ### 8.5 Page: Settings (`/settings`)
-- [ ] Pre-fill form: pull current user from DataScript
-- [ ] Submit dispatches `[:user/update fields]` → PUT `/api/user` → retransact updated user
-- [ ] Logout: dispatch `[:user/logout]` → retract user entity from DataScript + clear localStorage
+- [x] Pre-fill form: pull current user from DataScript
+- [x] Submit dispatches `[:user/update fields]` → PUT `/api/user` → retransact updated user
+- [x] Logout: dispatch `[:user/logout]` → retract user entity from DataScript + clear localStorage
 
 ### 8.6 Page: Editor (`/editor`, `/editor/:slug`)
 - [ ] Create: dispatch `[:article/create fields]` → POST → transact new article → navigate to article page

@@ -11,4 +11,5 @@
    :user/following {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many} ; points to MULTIPLE user entities
    :user/username {:db/unique :db.unique/identity}
    :app/current-user {:db/valueType :db.type/ref} ; points to ONE user entity
+   :app/tags {:db/cardinality :db.cardinality/many}
    })

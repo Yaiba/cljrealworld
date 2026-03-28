@@ -336,7 +336,7 @@
   []
   {:status 200
    :headers {"Content-Type" "text/html"}
-   :body (slurp "public/index.html")})
+   :body (slurp "resources/public/index.html")})
 
 (defn default-handler
   [req]

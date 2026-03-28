@@ -14,3 +14,14 @@
 (defn get-token [state]
   (get-in (d/pull state '[{:app/current-user [:user/token]}] UI-ENTITY)
           [:app/current-user :user/token]))
+
+(defn query-tags
+  [state]
+  (:app/tags (d/pull state '[:app/tags] UI-ENTITY)))
+
+(defn query-current-user
+  [state]
+  (get-in (d/pull
+           state
+           '[{:app/current-user [:user/username :user/image :user/bio :user/email]}] UI-ENTITY)
+          [:app/current-user]))

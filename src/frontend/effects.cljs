@@ -5,6 +5,8 @@
             [datascript.core :as d]
             [reitit.frontend.easy :as rfe]))
 
+(def local-storage-item "token")
+
 (defn normalize-article
   "Normalize a article to two entity maps: author and article."
   [article]
@@ -33,7 +35,8 @@
      (let [user (:user resp)]
        (prn "login success====" resp) ; TODO: errors
        ;; we create a new entity, and link to it in ui-entity
-       (d/transact! system [(remove-nil-values {:db/id -1
+       (d/transact! system [[:db/retract UI-ENTITY :app/errors :app/email :app/password]
+                            (remove-nil-values {:db/id -1
                                                 :user/username (:username user)
                                                 :user/email (:email user)
                                                 :user/token (:token user)
@@ -42,14 +45,60 @@
                             {:db/id UI-ENTITY
                              :app/current-user -1
                              :user/token (:token user)}])
-       ;; TODO: remove :user/password from the entity?
+       (js/localStorage.setItem local-storage-item (:token user))
        (rfe/push-state :page/home)))
+   
+   :app/login-failure
+   (fn [system resp]
+     (let [errors (:errors resp)]
+       (d/transact! system [{:db/id UI-ENTITY :app/errors errors}])))
    
    :app/fetch-articles-success
    (fn [system resp]
-    (prn "fetch article success ===" (count (:articles resp)))
-     ;; TODO: use :http/fetch-article ?
-     (d/transact! system (mapcat normalize-article (:articles resp))))
+     (prn "fetch article success ===" (count (:articles resp)))
+     (prn "total article count ===" (:articlesCount resp))
+     (let [db (d/db system)
+           existing-ids (d/q '[:find [?a ...] :where [?a :article/slug _]] db)
+           retractions (map (fn [eid] [:db/retractEntity eid]) existing-ids)] 
+       ;; TODO: use :http/fetch-article ?
+       (d/transact! system (concat retractions
+                                   [{:db/id UI-ENTITY :app/articles-count (:articlesCount resp)}]
+                                   (mapcat normalize-article (:articles resp))))))
+   
+   :app/fetch-tags-success
+   (fn [system resp]
+     (prn "fetch tags success ===" (count (:tags resp)))
+     (d/transact! system [{:db/id UI-ENTITY
+                           :app/tags (:tags resp)}]))
+   
+   :app/fetch-current-user-success
+   (fn [system resp]
+     (let [user (:user resp)]
+       (d/transact! system [(remove-nil-values {:db/id -1
+                                                :user/username (:username user)
+                                                :user/email    (:email user)
+                                                :user/token    (:token user)
+                                                :user/bio      (:bio user)
+                                                :user/image    (:image user)})
+                            (remove-nil-values {:db/id UI-ENTITY
+                                                :app/current-user -1
+                                                })]))) 
+                                                ; also save user info in settings namespace for easier editing))
+                                                ;;  :settings/username (:username user)
+                                                ;; :settings/email (:email user)
+                                                ;; :settings/bio (:bio user)
+                                                ;; :settings/image (:image user)
+   
+   :user/update-success
+   (fn [system resp]
+     (let [user (:user resp)]
+       (d/transact! system [(remove-nil-values {:db/id -1
+                                                :user/username (:username user)
+                                                :user/email    (:email user)
+                                                :user/token    (:token user)
+                                                :user/bio      (:bio user)
+                                                :user/image    (:image user)})
+                            {:db/id UI-ENTITY :app/current-user -1}])))
    })
 
 (def effects
@@ -60,16 +109,32 @@
    (fn [_ctx system entities]
      (d/transact! system entities))
    :http/request
-   (fn [_ctx system {:keys [method url body on-success]}]
+   (fn [_ctx system {:keys [method url body on-success on-failure]}]
      (let [token (get-token (d/db system))
            headers (cond-> {"Content-type" "application/json"}
-                     token (assoc "Authorization" (str "Token " token)))
-           success-handler (get callbacks on-success)]
-       (-> (js/fetch url 
+                     token (assoc "Authorization" (str "Token " token)))]
+       (-> (js/fetch url
                      (clj->js {:method method
                                :headers headers
                                :body (when body
                                        (js/JSON.stringify (clj->js body)))}))
            (.then #(.json %))
-           (.then #(success-handler system (js->clj % :keywordize-keys true))))))
-      })
+           (.then #(let [resp (js->clj % :keywordize-keys true)
+                         handler (if (:errors resp)
+                                   (get callbacks on-failure)
+                                   (get callbacks on-success))]
+                     (when handler
+                       (handler system resp)))))))
+
+   :user/logout
+   (fn [_ctx system]
+     (let [db (d/db system)
+           user-eid (get-in (d/pull db '[{:app/current-user [:db/id]}] UI-ENTITY)
+                            [:app/current-user :db/id])]
+       (when user-eid
+         (d/transact! system [[:db/retractEntity user-eid]
+                              [:db/retract UI-ENTITY :app/current-user]]))
+       (js/localStorage.removeItem local-storage-item)
+       (rfe/push-state :page/login)))
+  
+   })

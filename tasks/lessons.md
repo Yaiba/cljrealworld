@@ -183,6 +183,29 @@ Key rules:
   ;; then call (dev/setup) once from the REPL
   ```
 
+### Retracting entities from DataScript
+
+DataScript has no "delete where" — to remove entities you must query for their IDs first, then retract.
+
+Three retraction operations:
+```clojure
+[:db/retract eid :article/title "Old Title"]  ; remove one attribute value
+[:db/retractEntity eid]                        ; remove entity + all its attributes
+```
+
+The pattern for "clear and replace" (e.g. replacing article feed on tag filter):
+```clojure
+(let [existing-ids (d/q '[:find [?a ...] :where [?a :article/slug _]] db)
+      retractions  (map (fn [eid] [:db/retractEntity eid]) existing-ids)]
+  (d/transact! conn (concat retractions new-entities)))
+```
+
+`d/transact!` accepts mixed tx-data — retractions and additions in one atomic transaction.
+
+**Gotcha:** `:db/retractEntity` does NOT cascade through refs. If an article has `:article/author` pointing to a user, the user entity survives — only the ref attribute on the article is removed.
+
+---
+
 ### Unique identity attributes enable upsert and lookup refs
 - Declare `:db/unique :db.unique/identity` on natural keys like `:user/username` and `:article/slug`.
 - Upsert: transacting an entity with a unique attribute that already exists merges with the existing entity — no duplicates.

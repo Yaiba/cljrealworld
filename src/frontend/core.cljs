@@ -8,7 +8,7 @@
             [frontend.schema :refer [schema]]
             [frontend.constants :refer [UI-ENTITY]]
             [frontend.actions :refer [actions]]
-            [frontend.effects :refer [effects]]
+            [frontend.effects :refer [effects local-storage-item]]
             [frontend.queries :as qs]
             ))
 
@@ -25,7 +25,10 @@
 
 (def routes
   [["/" :page/home]
-   ["/login" :page/login]])
+   ["/login" :page/login]
+   ["/register" :page/register]
+   ["/settings" :page/settings]
+   ])
 
 (defn render [state]
   (r/render (js/document.getElementById "app")
@@ -39,17 +42,21 @@
   (d/listen! store ::render
              (fn [{:keys [db-after]}]
                (render db-after)))
-  
+
   ;; init state
-  (d/transact! store [{:db/id UI-ENTITY
-                      :app/email ""
-                      :app/password ""}])
-  
+  (d/transact! store [{:app/loaded-at (.getTime (js/Date.))}])
+
   ;; wire up nexus
   (r/set-dispatch!
    (fn [replicant-data action-vec]
      (nexus/dispatch app-nexus store replicant-data [action-vec])))
   
+  ;; restore user
+  (when-let [token (js/localStorage.getItem local-storage-item)]
+    (d/transact! store [{:db/id -1 :user/token token}
+                        {:db/id UI-ENTITY :app/current-user -1}])
+    (nexus/dispatch app-nexus store {} [[:app/fetch-current-user]]))
+
   ;; router
   (rfe/start!
    (rf/router routes)
@@ -58,8 +65,16 @@
        (let [page (-> match :data :name)]
          (prn "router match - " page)
          (d/transact! store [{:db/id UI-ENTITY :app/page page}])
-         (when (= page :page/home)
-           (nexus/dispatch app-nexus store {} [[:app/fetch-articles]])))))
+         (condp = page
+           :page/home
+           (nexus/dispatch app-nexus store {} [[:app/fetch-articles]
+                                               [:app/fetch-tags]])
+           :page/login
+           (when (qs/get-token (d/db store))
+             (rfe/push-state :page/home))
+           :page/settings
+           (nexus/dispatch app-nexus store {} [[:settings/init]])
+           ))))
    {:use-fragment false}))
 
 ;; -------- setup ---------

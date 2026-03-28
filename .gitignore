@@ -5,6 +5,7 @@ target/
 
 # ClojureScript
 resources/public/js/
+resources/public/style.css
 .shadow-cljs/
 node_modules/
 
