@@ -23,7 +23,8 @@
 
 (defn start
   [] 
-  (reset! system (ig/init config)))
+  (reset! system (ig/init config))
+)
 
 (defn stop
   []

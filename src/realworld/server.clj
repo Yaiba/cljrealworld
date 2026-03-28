@@ -497,6 +497,6 @@
   (-> (ring/routes
        (ring/ring-handler (create-api-router secret))
        default-handler) ;plain handler, catches everything that fell through 
-      (ring.middleware.file/wrap-file "public")
+      (ring.middleware.file/wrap-file "resources/public")
       (wrap-db ds)
       (wrap-secret secret)))

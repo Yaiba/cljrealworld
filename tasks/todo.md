@@ -305,15 +305,15 @@
 **Estimated time**: ~2–3 weeks
 
 ### 8.1 DataScript schema — model the whole domain
-- [ ] Define full schema: users, articles, comments, tags, favorites, follows — with `:db/unique`, `:db/valueType :db.type/ref`, `:db/cardinality :db.cardinality/many` where appropriate
-- [ ] Write `queries.cljs` namespace with named query helpers (e.g. `articles-by-tag`, `current-user`, `article-with-comments`)
-- [ ] Verify queries from the REPL with seeded test data
+- [x] Define full schema: users, articles, comments, tags, favorites, follows — with `:db/unique`, `:db/valueType :db.type/ref`, `:db/cardinality :db.cardinality/many` where appropriate
+- [x] Write `queries.cljc` namespace with named query helpers
+- [x] Verify queries from the REPL with seeded test data
 
 ### 8.2 Nexus actions + effects — full API coverage
-- [ ] Write `actions.cljs`: pure handlers that translate high-level intents into lower-level action sequences
-- [ ] Write `effects.cljs`: HTTP effect functions for all API calls (fetch articles, post comment, etc.) — each calls `d/transact!` on success
+- [x] Write `actions.cljc`: pure handlers split into own namespace
+- [x] Write `effects.cljs`: HTTP effect functions, each calls `d/transact!` on success
 - [ ] Write an `:http/request` effect that handles auth header injection (reads JWT from DataScript)
-- [ ] All effects are testable by calling them directly from the REPL
+- [x] Split codebase: schema.cljc, constants.cljc, queries.cljc, actions.cljc, effects.cljs, routes.cljs, views/
 
 ### 8.3 Page: Home (`/`)
 - [ ] Global feed tab + personal feed tab (query DataScript for feed type)

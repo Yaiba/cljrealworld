@@ -1,10 +1,10 @@
 # Clojure
 .cpcache/
-.clj-kondo/.cache/
+.clj-kondo
 target/
 
 # ClojureScript
-public/js/
+resources/public/js/
 .shadow-cljs/
 node_modules/
 
