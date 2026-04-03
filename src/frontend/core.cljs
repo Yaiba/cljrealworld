@@ -28,7 +28,10 @@
    ["/login" :page/login]
    ["/register" :page/register]
    ["/settings" :page/settings]
-   ])
+   ["/editor" :page/editor]
+   ["/editor/:slug" :page/editor-edit]
+   ["/article/:slug" :page/article]
+   ["/profile/:username" :page/profile]])
 
 (defn render [state]
   (r/render (js/document.getElementById "app")
@@ -49,7 +52,7 @@
   ;; wire up nexus
   (r/set-dispatch!
    (fn [replicant-data action-vec]
-     (nexus/dispatch app-nexus store replicant-data [action-vec])))
+     (nexus/dispatch app-nexus store replicant-data action-vec)))
   
   ;; restore user
   (when-let [token (js/localStorage.getItem local-storage-item)]
@@ -74,6 +77,20 @@
              (rfe/push-state :page/home))
            :page/settings
            (nexus/dispatch app-nexus store {} [[:settings/init]])
+           :page/editor
+           (nexus/dispatch app-nexus store {} [[:editor/init nil]])
+           :page/editor-edit
+           (let [slug (get-in match [:path-params :slug])]
+             (prn "editor edit =" slug)
+             (nexus/dispatch app-nexus store {} [[:editor/init slug]]))
+           :page/article
+           (let [slug (get-in match [:path-params :slug])]
+             (nexus/dispatch app-nexus store {} [[:article/fetch slug]
+                                                 [:article/fetch-comments slug]]))
+           :page/profile
+            (let [username (get-in match [:path-params :username])]
+              (nexus/dispatch app-nexus store {} [[:profile/fetch username]
+                                                  [:profile/fetch-articles username :my-articles]]))
            ))))
    {:use-fragment false}))
 

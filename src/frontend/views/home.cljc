@@ -1,4 +1,5 @@
-(ns frontend.views.home)
+(ns frontend.views.home
+  (:require [frontend.views.articles :as articles-view]))
 
 (defn render-ui 
   [articles tags feed-type current-user current-page-num articles-count]  
@@ -12,9 +13,10 @@
       [:div.navbar-end
        (if current-user
          [:div.flex.gap-2
-          [:a.btn.btn-ghost {:on {:click [:app/navigate :page/settings]}} "Settings"]
+          [:a.btn.btn-ghost {:on {:click [[:app/navigate :page/editor]]}} "New Article"]
+          [:a.btn.btn-ghost {:on {:click [[:app/navigate :page/settings]]}} "Settings"]
           [:span.btn.btn-ghost (:user/username current-user)]]
-         [:a.btn.btn-ghost {:on {:click [:app/navigate :page/login]}} "Sign in"])]]
+         [:a.btn.btn-ghost {:on {:click [[:app/navigate :page/login]]}} "Sign in"])]]
 
      ;; Hero banner
      [:div.hero.bg-neutral.text-neutral-content.py-8
@@ -28,18 +30,11 @@
       [:div.flex-1
        [:div.tabs.tabs-bordered.mb-4
         [:a.tab {:class (when (not= feed-type :personal) "tab-active")
-                 :on {:click [:feed/set-type :global]}} "Global Feed"]
+                 :on {:click [[:feed/set-type :global]]}} "Global Feed"]
         (when current-user
           [:a.tab {:class (when (= feed-type :personal) "tab-active")
-                   :on {:click [:feed/set-type :personal]}} "Your Feed"])]
-       (for [article articles]
-         [:div.card.bg-base-100.shadow.mb-4
-          {:key (:article/slug article)}
-          [:div.card-body
-           [:h2.card-title (:article/title article)]
-           [:p (:article/description article)]
-           [:div.text-sm.text-base-content.opacity-60
-            "by " (get-in article [:article/author :user/username])]]])
+                   :on {:click [[:feed/set-type :personal]]}} "Your Feed"])]
+        (articles-view/render-ui articles)]
 
        ;;pagination
        [:div.flex.gap-2.mt-4
@@ -47,7 +42,7 @@
           [:button.btn.btn-sm
            {:key n
             :class (when (= n page-num) "btn-active")
-            :on {:click [:feed/set-page n]}}
+            :on {:click [[:feed/set-page n]]}}
            (inc n)])]]
 
       ;; Tag sidebar
@@ -59,5 +54,5 @@
           (for [tag tags]
             [:span.badge.badge-neutral.cursor-pointer
              {:key tag
-              :on {:click [:feed/set-tag tag]}}
+              :on {:click [[:feed/set-tag tag]]}}
              tag])]]]]]]))

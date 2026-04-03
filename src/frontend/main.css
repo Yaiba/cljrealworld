@@ -1,3 +1,4 @@
 @import "tailwindcss";
 @source "./**/*.{cljs,cljc,clj}";
 @plugin "daisyui";
+@plugin "@tailwindcss/typography";

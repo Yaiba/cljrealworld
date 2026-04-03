@@ -228,13 +228,13 @@
         user-id (:user-id identity)
         slug    (get-in req [:path-params :slug])
         article (db.articles/find-by-slug ds slug)]
-    (println "update article: " article)
     (if-not article
       {:status 404 :body {:errors {:article ["not found"]}}} ;; different body
-      (if-let [has-permission? (= user-id (:author_id article))]
+      (if (= user-id (:author_id article))
         (let [data (get-in req [:parameters :body :article])
-              _ (db.articles/update! ds slug user-id data)
-              updated-article (db.articles/find-by-slug ds slug)]
+              updated-row (db.articles/update! ds slug user-id data)
+              new-slug (:articles/slug updated-row)
+              updated-article (db.articles/find-by-slug ds new-slug)]
           {:status 200
            :body   {:article (build-article-response ds updated-article user-id)}})
         {:status 403 :body (err-key :article "forbidden")}))))

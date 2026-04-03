@@ -1,11 +1,14 @@
 {
   "dependencies": {
     "@tailwindcss/cli": "^4.2.2",
+    "@tailwindcss/typography": "^0.5.19",
     "daisyui": "^5.5.19",
+    "marked": "^17.0.5",
     "tailwindcss": "^4.2.2"
   },
   "scripts": {
     "css": "npx @tailwindcss/cli -i ./src/frontend/main.css -o ./resources/public/styles.css --watch",
-    "shadow": "npx shadow-cljs watch app"
+    "shadow": "npx shadow-cljs watch app",
+    "repl": "clj -M:dev -m nrepl.cmdline"
   }
 }

@@ -333,20 +333,20 @@
 - [x] Logout: dispatch `[:user/logout]` → retract user entity from DataScript + clear localStorage
 
 ### 8.6 Page: Editor (`/editor`, `/editor/:slug`)
-- [ ] Create: dispatch `[:article/create fields]` → POST → transact new article → navigate to article page
-- [ ] Edit: pull existing article from DataScript to pre-fill form; dispatch `[:article/update slug fields]`
-- [ ] Tag chips: store draft tags as a DataScript attribute; add/remove via Nexus actions
+- [x] Create: dispatch `[:article/create fields]` → POST → transact new article → navigate to article page
+- [x] Edit: pull existing article from DataScript to pre-fill form; dispatch `[:article/update slug fields]`
+- [x] Tag chips: store draft tags as a DataScript attribute; add/remove via Nexus actions
 
 ### 8.7 Page: Article (`/article/:slug`)
-- [ ] Render Markdown body: use JS interop with `marked` library loaded via npm
-- [ ] Comments: transact comments from `GET /api/articles/:slug/comments` on page load; query for render
-- [ ] Post comment: dispatch `[:comment/create slug body]` → POST → transact new comment
-- [ ] Delete comment: dispatch `[:comment/delete slug id]` → DELETE → retract entity from DataScript
-- [ ] Favorite / follow: dispatch actions → optimistic DataScript update → HTTP effect
+- [x] Render Markdown body: use JS interop with `marked` library loaded via npm
+- [x] Comments: transact comments from `GET /api/articles/:slug/comments` on page load; query for render
+- [x] Post comment: dispatch `[:comment/create slug body]` → POST → transact new comment
+- [x] Delete comment: dispatch `[:comment/delete slug id]` → DELETE → retract entity from DataScript
+- [x] Favorite / follow: dispatch actions → optimistic DataScript update → HTTP effect
 
 ### 8.8 Page: Profile (`/profile/:username`)
-- [ ] User articles tab / favorited articles tab: store active tab in DataScript
-- [ ] Follow / unfollow: dispatch action → optimistic update in DataScript
+- [x] User articles tab / favorited articles tab: store active tab in DataScript
+- [x] Follow / unfollow: dispatch action → optimistic update in DataScript
 
 ### 8.9 Testing — full coverage
 - [ ] **Query tests** (`queries_test.cljs`): for every query helper in `queries.cljs`, write a test that seeds a minimal DataScript DB and asserts the return value — these are the fastest, most reliable tests
