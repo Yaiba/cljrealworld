@@ -348,7 +348,48 @@
 - [x] User articles tab / favorited articles tab: store active tab in DataScript
 - [x] Follow / unfollow: dispatch action → optimistic update in DataScript
 
-### 8.9 Testing — full coverage
+### 8.9 Portfolio visual workbench — composable, testable views
+**Goal**: Use [cjohansen/portfolio](https://github.com/cjohansen/portfolio) as a visual component workbench. Refactor views into small, pure hiccup components that can be rendered and inspected in isolation — like Storybook, but for Clojure/ClojureScript.
+
+**Key insight**: Portfolio scenes take a component + a data map and render them live. If your view is a pure function `(defn article-card [article] ...)`, you get visual tests for free. Scenes also double as living documentation.
+
+#### Setup
+- [ ] Add `no.cjohansen/portfolio` to `shadow-cljs.edn` `:dependencies`
+- [ ] Add a `:portfolio` build in `shadow-cljs.edn` targeting `public/portfolio/js/app.js` with `:target :browser`
+- [ ] Add a `public/portfolio/index.html` that loads the portfolio bundle
+- [ ] Create `src/app/portfolio.cljs` — call `portfolio.ui/start!` with your scenes map
+- [ ] Verify: `npx shadow-cljs watch portfolio` → open `http://localhost:PORT/portfolio/` in browser
+
+#### Decompose views into pure components
+- [ ] Identify repeated UI units: `article-card`, `tag-pill`, `user-avatar`, `comment-card`, `pagination-controls`, `nav-bar`, `error-banner`
+- [ ] Extract each into its own function in `views/components.cljs` — each takes a plain map, returns hiccup, no atom/DB access
+- [ ] Replace inline hiccup in page views with calls to these component functions
+- [ ] Verify pages still render correctly after decomposition
+
+#### Write Portfolio scenes
+- [ ] For each component, write 2–3 scenes covering normal, empty, and edge cases:
+  - `article-card`: normal article, long title, missing image
+  - `tag-pill`: single tag, many tags
+  - `user-avatar`: with image, without image (fallback initials)
+  - `comment-card`: own comment (shows delete), other's comment
+  - `pagination-controls`: first page, last page, middle page
+  - `error-banner`: single error, multiple errors, no errors (hidden)
+- [ ] Verify all scenes render without errors in the Portfolio browser
+
+#### Use scenes as regression tests
+- [ ] Understand the connection: a scene is just `(defn my-scene [] (my-component test-data))` — the same call you'd make in a `cljs.test` assertion
+- [ ] For each component, add a `cljs.test` test that calls the component function with the same fixture data as the Portfolio scene and asserts the hiccup shape
+- [ ] Run tests: `npx shadow-cljs compile test && node out/test.js` — all passing
+
+**8.9 complete when**: Portfolio workbench runs with scenes for every extracted component, and each component has a matching unit test. Pages are composed from these smaller functions.
+
+### 8.10 Polish
+- [ ] Loading states: transact `:app/loading? true` before HTTP calls, retract on completion; query in views
+- [ ] Error states: transact error messages into DataScript; display in views; clear on navigation
+- [ ] Auth-gated routes: check DataScript for current user on route change; redirect to login if absent
+- [ ] 404 page as a default route handler
+
+### 8.11 Testing — full coverage
 - [ ] **Query tests** (`queries_test.cljs`): for every query helper in `queries.cljs`, write a test that seeds a minimal DataScript DB and asserts the return value — these are the fastest, most reliable tests
 - [ ] **Action handler tests** (`actions_test.cljs`): for each handler in `actions.cljs`, assert the output action sequence for a given input state — pure functions, zero setup needed
 - [ ] **View snapshot tests** (`views_test.cljs`): call each page view function with a representative state map, assert the top-level hiccup structure (tag, key attributes) — catch regressions without a browser
@@ -356,11 +397,6 @@
 - [ ] **Full loop integration test**: create a fresh conn, wire up a test nexus with stub HTTP, drive a multi-step user flow (e.g. login → fetch feed → favorite an article), assert final DataScript state at each step
 - [ ] Run `npx shadow-cljs compile test && node out/test.js` — all tests green before Stage 8 is done
 
-### 8.10 Polish
-- [ ] Loading states: transact `:app/loading? true` before HTTP calls, retract on completion; query in views
-- [ ] Error states: transact error messages into DataScript; display in views; clear on navigation
-- [ ] Auth-gated routes: check DataScript for current user on route change; redirect to login if absent
-- [ ] 404 page as a default route handler
 
 **Stage 8 complete when**: All 7 pages work end-to-end via the ClojureScript SPA hitting the same backend.
 
