@@ -1,24 +1,16 @@
-(ns frontend.views.editor)
+(ns frontend.views.editor
+  (:require [frontend.views.components :as c]))
 
-(defn render-ui [form errors]
+(defn render-ui [form errors current-user]
   (let [draft-tags (or (:editor/tags form) #{})]
     [:div.min-h-screen.bg-base-200
-     [:div.navbar.bg-base-100.shadow
-      [:div.navbar-start
-       [:a.btn.btn-ghost.text-xl {:on {:click [[:app/navigate :page/home]]}} "Realworld"]]
-      [:div.navbar-end
-       [:a.btn.btn-ghost {:on {:click [[:app/navigate :page/home]]}} "Home"]]]
+     (c/navbar current-user)
 
      [:div.container.mx-auto.px-4.py-10.max-w-2xl
       [:h1.text-3xl.font-bold.mb-6
        (if (:editor/slug form) "Edit Article" "New Article")]
 
-      (when errors
-        [:div.alert.alert-error.mb-4
-         [:ul
-          (for [[field msgs] errors
-                msg msgs]
-            [:li {:key (str field msg)} (str (name field) " " msg)])]])
+      (c/error-banner errors)
 
       [:div.card.bg-base-100.shadow-xl
        [:div.card-body
@@ -52,24 +44,22 @@
             :value (or (:editor/tag-input form) "")
             :on {:input [[:editor/set-field :tag-input [:event.target/value]]]
                  :keydown [[:editor/tag-keydown [:event.target/value]]]}}
-          [:button.btn.btn-outline
-           {:on {:click [[:editor/add-tag]]}}
-           "Add Tag"]]
-         ;; Tag chips
-         (when (seq draft-tags)
-           [:div.flex.flex-wrap.gap-2.mt-2
-            (for [tag draft-tags]
-              [:span.badge.badge-neutral.gap-1
-               {:key tag}
-               tag
-               [:button.btn.btn-xs.btn-ghost.p-0
-                {:on {:click [[:editor/remove-tag tag]]}}
-                "×"]])])]
+           [:button.btn.btn-outline
+            {:on {:click [[:editor/add-tag]]}}
+            "Add Tag"]]
+          ;; Tag chips
+          (when (seq draft-tags)
+            [:div.flex.flex-wrap.gap-2.mt-2
+             (for [tag draft-tags]
+               [:span.badge.badge-neutral.gap-1
+                {:key tag}
+                tag
+                [:button.btn.btn-xs.btn-ghost.p-0
+                 {:on {:click [[:editor/remove-tag tag]]}}
+                 "×"]])])]
 
-        [:button.btn.btn-primary.w-full
-         {:on {:click [(if (:editor/slug form)
-                         [[:article/update]]
-                         [[:article/create]])]}}
-         (if (:editor/slug form) "Update Article" "Publish Article")]
-        ]
-        ]]]]))
+         [:button.btn.btn-primary.w-full
+          {:on {:click [(if (:editor/slug form)
+                          [[:article/update]]
+                          [[:article/create]])]}}
+          (if (:editor/slug form) "Update Article" "Publish Article")]]]]]]))

@@ -206,6 +206,61 @@ The pattern for "clear and replace" (e.g. replacing article feed on tag filter):
 
 ---
 
+### Don't pin nrepl/cider-nrepl in deps.edn when using Calva
+
+- Calva bundles its own versions of `nrepl` and `cider-nrepl` and injects them at jack-in time.
+- If you also declare them in your `:dev` alias, two versions land on the classpath — version conflict causes the nREPL middleware to hang or initialize incorrectly, making the REPL accept input but never respond.
+- Fix: remove `nrepl` and `cider-nrepl` from deps.edn and let Calva manage them.
+- Only pin these deps if you're starting the REPL via `clj` on the command line (not through Calva).
+
+---
+
+### Testing hiccup with `lookup` — assert on content and actions, not CSS
+
+- Add `no.cjohansen/lookup` to your test alias in `deps.edn`.
+- Use `l/select` to find elements inside a hiccup tree by CSS-like selectors.
+- Use `l/text` to extract text content from an element.
+- Use `l/attrs` to get the attributes map (including `:on` handlers).
+- **Don't assert on CSS class names** — they change with styling. Assert on text content and action vectors instead:
+  ```clojure
+  ;; bad — brittle
+  (is (= :div.alert.alert-error (first result)))
+
+  ;; good — tests behaviour
+  (is (seq (l/select '[:li] result)))
+  (is (= [[:feed/set-tag "clojure"]] (get-in (l/attrs result) [:on :click])))
+  ```
+- `l/select` searches *inside* the root element — if your component IS the root element you care about, use `l/text` or `l/attrs` directly on it rather than `l/select`.
+- Portfolio scenes and unit tests use the same fixture data — scenes are living docs, tests are the regression safety net.
+
+### `.cljc` + `clojure.test` for pure frontend components
+
+- Pure hiccup functions (no `js/...`, no browser APIs) can live in `.cljc` files and be tested on the JVM with `clojure.test`.
+- No Node, no browser, no shadow-cljs `:test` build needed — just `clj -M:test` via kaocha.
+- Rule: if a component only takes plain maps and returns hiccup vectors, put it in `.cljc` and test it like any other Clojure function.
+
+### `with-redefs` is unreliable in ClojureScript for external library functions
+
+In Clojure, every function call goes through a var lookup at runtime — `with-redefs` swaps the var and intercepts the call. In ClojureScript, the compiler can **inline** function references from external libraries (e.g. `rfe/push-state` becomes a direct JS reference `reitit.frontend.easy.push_state`), bypassing the var entirely. `with-redefs` has nothing to swap.
+
+`with-redefs` works reliably for:
+- Vars you define in your own namespaces
+- Functions passed as arguments (dependency injection)
+
+The idiomatic ClojureScript solution is **dependency injection** — pass side-effectful functions (navigate, fetch, store) via a context map instead of calling them directly:
+```clojure
+;; effect receives navigate via ctx — testable without with-redefs
+:user/logout
+(fn [{:keys [navigate]} system]
+  ...
+  (navigate :page/login))
+
+;; test passes a stub
+(logout-effect {:navigate (fn [& _] nil)} conn)
+```
+
+For one-off cases where refactoring isn't worth it, `try-catch` the call and assert on the DataScript state that was already mutated before the error.
+
 ### Unique identity attributes enable upsert and lookup refs
 - Declare `:db/unique :db.unique/identity` on natural keys like `:user/username` and `:article/slug`.
 - Upsert: transacting an entity with a unique attribute that already exists merges with the existing entity — no duplicates.

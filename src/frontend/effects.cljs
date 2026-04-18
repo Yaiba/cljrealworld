@@ -190,8 +190,10 @@
    (fn [_ctx system entities]
      (d/transact! system entities))
    :http/request
-   (fn [_ctx system {:keys [method url body on-success on-failure]}]
-     (prn "----- on-success" on-success "=== on-failure" on-failure)
+   (fn [_ctx system {:keys [method url body on-success on-failure loading-key]}]
+     ;; set loading-key before request, and clear it in both success/failure handlers; this way we can show loading state in the UI
+     (when loading-key
+       (d/transact! system [{:db/id UI-ENTITY loading-key true}]))
      (let [token (get-token (d/db system))
            headers (cond-> {"Content-type" "application/json"}
                      token (assoc "Authorization" (str "Token " token)))]
@@ -207,9 +209,12 @@
                          handler (if (:errors resp)
                                    (get callbacks on-failure-key)
                                    (get callbacks on-success-key))
-                         handler-args (if (:errors resp) 
+                         handler-args (if (:errors resp)
                                         failure-args
                                         success-args)]
+                     ;; clear loading state, and call handler
+                     (when loading-key
+                       (d/transact! system [{:db/id UI-ENTITY loading-key false}]))
                      (when handler
                        (apply handler system resp handler-args)))))))
 

@@ -1,4 +1,5 @@
-(ns frontend.views.login)
+(ns frontend.views.login
+  (:require [frontend.views.components :as c]))
 
 (defn render-ui [email password errors]
   [:div.min-h-screen.w-full.flex.items-center.justify-center.bg-base-200
@@ -7,12 +8,7 @@
      [:h2.card-title.justify-center.text-2xl "Sign in"]
      [:p.text-center.mb-4
       [:a.link {:on {:click [[:app/navigate :page/register]]}} "Need an account?"]]
-     (when errors
-       [:div.alert.alert-error
-        [:ul
-         (for [[field msgs] errors
-               msg msgs]
-           [:li {:key (str field msg)} (str (name field) " " msg)])]])
+     (c/error-banner errors)
      [:div.form-control.mb-2
       [:input.input.input-bordered
        {:type "email" :placeholder "Email" :value email

@@ -4,10 +4,12 @@
 target/
 
 # ClojureScript
+portfolio/resources/public/js/
 resources/public/js/
 resources/public/styles.css
 .shadow-cljs/
 node_modules/
+out/
 
 # nREPL
 .nrepl-port

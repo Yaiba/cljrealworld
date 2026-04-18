@@ -1,7 +1,8 @@
 ;; shadow-cljs configuration
 {:deps {:aliases [:cljs :cljs-dev]}
- ;; :dev-http {8080 {:root "resources/public"
- ;;                  :push-state/index "index.html"}}
+ :dev-http {8080 {:root "resources/public"
+                  :push-state/index "index.html"}
+            8081 {:roots ["portfolio/resources/public" "resources/public" "classpath:public"]}}
  :builds
  {:app {:target :browser
         :devtools {:preloads [dev]
@@ -9,4 +10,11 @@
                    :repl-pprint true}
         :output-dir "resources/public/js"
         :asset-path "/js"
-        :modules {:main {:init-fn frontend.core/main}}}}}
+        :modules {:main {:init-fn frontend.core/main}}}
+  :test {:target :node-test
+         :output-to "out/test.js"
+         :ns-regexp "realworld\\.frontend\\.(effects|integration).*"} ;; regex to match test namespaces
+  :portfolio {:target :browser
+              :output-dir "portfolio/resources/public/js"
+              :asset-path "/js"
+              :modules {:main {:init-fn frontend.portfolio/main}}}}}

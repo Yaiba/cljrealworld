@@ -1,16 +1,12 @@
-(ns frontend.views.settings)
+(ns frontend.views.settings
+  (:require [frontend.views.components :as c]))
 
 (defn render-ui [form errors]
   [:div.min-h-screen.w-full.flex.items-center.justify-center.bg-base-200
    [:div.card.w-full.max-w-lg.bg-base-100.shadow-xl
     [:div.card-body
      [:h2.card-title.justify-center.text-2xl "Your Settings"]
-     (when errors
-       [:div.alert.alert-error.mb-4
-        [:ul
-         (for [[field msgs] errors
-               msg msgs]
-           [:li {:key (str field msg)} (str (name field) " " msg)])]])
+     (c/error-banner errors)
      [:div.form-control.mb-2
       [:input.input.input-bordered
        {:type "text" :placeholder "URL of profile picture"

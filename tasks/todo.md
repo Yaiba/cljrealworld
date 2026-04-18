@@ -354,51 +354,102 @@
 **Key insight**: Portfolio scenes take a component + a data map and render them live. If your view is a pure function `(defn article-card [article] ...)`, you get visual tests for free. Scenes also double as living documentation.
 
 #### Setup
-- [ ] Add `no.cjohansen/portfolio` to `shadow-cljs.edn` `:dependencies`
-- [ ] Add a `:portfolio` build in `shadow-cljs.edn` targeting `public/portfolio/js/app.js` with `:target :browser`
-- [ ] Add a `public/portfolio/index.html` that loads the portfolio bundle
-- [ ] Create `src/app/portfolio.cljs` — call `portfolio.ui/start!` with your scenes map
-- [ ] Verify: `npx shadow-cljs watch portfolio` → open `http://localhost:PORT/portfolio/` in browser
+- [x] Add `no.cjohansen/portfolio` to `shadow-cljs.edn` `:dependencies`
+- [x] Add a `:portfolio` build in `shadow-cljs.edn` targeting `public/portfolio/js/app.js` with `:target :browser`
+- [x] Add a `public/portfolio/index.html` that loads the portfolio bundle
+- [x] Create `src/app/portfolio.cljs` — call `portfolio.ui/start!` with your scenes map
+- [x] Verify: `npx shadow-cljs watch portfolio` → open `http://localhost:PORT/portfolio/` in browser
 
 #### Decompose views into pure components
-- [ ] Identify repeated UI units: `article-card`, `tag-pill`, `user-avatar`, `comment-card`, `pagination-controls`, `nav-bar`, `error-banner`
-- [ ] Extract each into its own function in `views/components.cljs` — each takes a plain map, returns hiccup, no atom/DB access
-- [ ] Replace inline hiccup in page views with calls to these component functions
-- [ ] Verify pages still render correctly after decomposition
+- [x] Identify repeated UI units: `article-card`, `tag-pill`, `user-avatar`, `comment-card`, `pagination-controls`, `nav-bar`, `error-banner`
+- [x] Extract each into its own function in `views/components.cljc` — each takes a plain map, returns hiccup, no atom/DB access
+- [x] Replace inline hiccup in page views with calls to these component functions
+- [x] Verify pages still render correctly after decomposition
 
 #### Write Portfolio scenes
-- [ ] For each component, write 2–3 scenes covering normal, empty, and edge cases:
+- [x] For each component, write 2–3 scenes covering normal, empty, and edge cases:
   - `article-card`: normal article, long title, missing image
   - `tag-pill`: single tag, many tags
-  - `user-avatar`: with image, without image (fallback initials)
-  - `comment-card`: own comment (shows delete), other's comment
-  - `pagination-controls`: first page, last page, middle page
+  - `comment-card`: own comment (shows delete), other's comment, logged out
   - `error-banner`: single error, multiple errors, no errors (hidden)
-- [ ] Verify all scenes render without errors in the Portfolio browser
+  - `navbar`: logged in, logged out
+- [x] Verify all scenes render without errors in the Portfolio browser
 
 #### Use scenes as regression tests
-- [ ] Understand the connection: a scene is just `(defn my-scene [] (my-component test-data))` — the same call you'd make in a `cljs.test` assertion
-- [ ] For each component, add a `cljs.test` test that calls the component function with the same fixture data as the Portfolio scene and asserts the hiccup shape
-- [ ] Run tests: `npx shadow-cljs compile test && node out/test.js` — all passing
+- [x] Understand the connection: a scene is just `(defn my-scene [] (my-component test-data))` — the same call you'd make in a `cljs.test` assertion
+- [x] For each component, add a `clojure.test` test that calls the component function with the same fixture data as the Portfolio scene and asserts the hiccup shape
+- [x] Run `clj -M:test:backend` — all passing
 
-**8.9 complete when**: Portfolio workbench runs with scenes for every extracted component, and each component has a matching unit test. Pages are composed from these smaller functions.
+**8.9 complete ✓**
 
 ### 8.10 Polish
-- [ ] Loading states: transact `:app/loading? true` before HTTP calls, retract on completion; query in views
-- [ ] Error states: transact error messages into DataScript; display in views; clear on navigation
-- [ ] Auth-gated routes: check DataScript for current user on route change; redirect to login if absent
-- [ ] 404 page as a default route handler
+- [x] Loading states: transact `:app/loading? true` before HTTP calls, retract on completion; query in views
+- [x] Error states: transact error messages into DataScript; display in views; clear on navigation
+- [x] Auth-gated routes: check DataScript for current user on route change; redirect to login if absent
+- [x] 404 page as a default route handler
 
 ### 8.11 Testing — full coverage
-- [ ] **Query tests** (`queries_test.cljs`): for every query helper in `queries.cljs`, write a test that seeds a minimal DataScript DB and asserts the return value — these are the fastest, most reliable tests
-- [ ] **Action handler tests** (`actions_test.cljs`): for each handler in `actions.cljs`, assert the output action sequence for a given input state — pure functions, zero setup needed
-- [ ] **View snapshot tests** (`views_test.cljs`): call each page view function with a representative state map, assert the top-level hiccup structure (tag, key attributes) — catch regressions without a browser
-- [ ] **Effect integration tests** (`effects_test.cljs`): for the HTTP effect, use a stub `js/fetch` (via `with-redefs` in ClojureScript) — dispatch the action, assert the fetch was called with the correct URL, headers, and body
-- [ ] **Full loop integration test**: create a fresh conn, wire up a test nexus with stub HTTP, drive a multi-step user flow (e.g. login → fetch feed → favorite an article), assert final DataScript state at each step
-- [ ] Run `npx shadow-cljs compile test && node out/test.js` — all tests green before Stage 8 is done
+- [x] **Query tests** (`queries_test.cljs`): for every query helper in `queries.cljs`, write a test that seeds a minimal DataScript DB and asserts the return value — these are the fastest, most reliable tests
+- [x] **Action handler tests** (`actions_test.cljs`): for each handler in `actions.cljs`, assert the output action sequence for a given input state — pure functions, zero setup needed
+- [x] **View snapshot tests** (`views_test.cljs`): call each page view function with a representative state map, assert the top-level hiccup structure (tag, key attributes) — catch regressions without a browser
+- [x] **Effect integration tests** (`effects_test.cljs`): for the HTTP effect, use a stub `js/fetch` (via `with-redefs` in ClojureScript) — dispatch the action, assert the fetch was called with the correct URL, headers, and body
+- [x] **Full loop integration test**: create a fresh conn, wire up a test nexus with stub HTTP, drive a multi-step user flow (e.g. login → fetch feed → favorite an article), assert final DataScript state at each step
+- [x] Run `npx shadow-cljs compile test && node out/test.js` — all tests green before Stage 8 is done
 
 
 **Stage 8 complete when**: All 7 pages work end-to-end via the ClojureScript SPA hitting the same backend.
+
+---
+
+## Stage 9: Babashka — Clojure as a Shell Scripting Language
+**Goal**: Use Babashka to automate dev tasks in the same language as the rest of the project. Replace `npm run`, `make`, and ad-hoc shell scripts with Clojure. Understand where Babashka fits vs the JVM.
+**Key insight**: Babashka starts in ~10ms (vs 2–5s JVM startup). It's not a replacement for your backend or frontend — it's for the glue: migrations, seed data, smoke tests, dev orchestration.
+**Estimated time**: ~3–4 days
+
+### 9.1 Install and understand Babashka
+- [ ] Install: `brew install borkdude/brew/babashka` — verify `bb --version`
+- [ ] Understand what Babashka is: a standalone binary with a subset of Clojure + batteries included (babashka.fs, babashka.process, babashka.http-client)
+- [ ] Run a one-liner from the terminal: `bb -e '(println (str "Hello from " (System/getProperty "os.name")))'`
+- [ ] Understand the key tradeoff: Babashka can't use JVM libs (no Postgres drivers, no Ring) — it's for scripting, not serving
+
+### 9.2 bb.edn — the task runner
+- [ ] Create `bb.edn` at the project root with a `:tasks` map
+- [ ] Write a `dev` task that starts the backend server: `{:task (shell "clj -M:backend:dev -m realworld.server")}`
+- [ ] Write a `test` task: `{:task (shell "clj -M:test:backend")}` and a `test-cljs` task for the shadow-cljs test
+- [ ] Write a `migrate` task that runs database migrations
+- [ ] Run `bb dev`, `bb test` — understand: `bb tasks` lists all tasks; tasks are just Clojure expressions
+- [ ] Add task dependencies with `:depends` — e.g. `test` depends on `migrate`
+
+### 9.3 File and process utilities
+- [ ] Use `babashka.fs` to write a `clean` task: delete `out/`, `resources/public/js/`, compiled artifacts
+- [ ] Use `babashka.process/shell` vs `babashka.process/process`: `shell` blocks and throws on failure; `process` returns a handle for async/parallel execution
+- [ ] Write a `dev-all` task that starts backend + `npx shadow-cljs watch app` in parallel using `process`
+- [ ] Understand: output from child processes — `:out :inherit` pipes to your terminal; `:out :string` captures it
+
+### 9.4 HTTP client — smoke test your own API
+- [ ] Use `babashka.http-client` (built-in) to write a `smoke-test` bb task that hits your running backend
+- [ ] Implement the sequence:
+  1. `POST /api/users/login` with test credentials → capture JWT from response
+  2. `GET /api/articles` with `Authorization: Token <jwt>` → assert `articlesCount` > 0
+  3. `GET /api/tags` → assert tags is a non-empty vector
+- [ ] Print a pass/fail summary for each assertion — exit with code 1 on any failure
+- [ ] Understand: `bb.http-client/request` returns a map with `:status`, `:body` (string); parse JSON with `(json/parse-string body true)` from `cheshire` or `(clojure.data.json/read-str body :key-fn keyword)` from `clojure.data.json` (built into Babashka)
+
+### 9.5 Seed data script
+- [ ] Write `scripts/seed.clj` — a Babashka script (not a task) that calls your own API to insert fixture data:
+  - Register a test user via `POST /api/users`
+  - Publish 3 articles via `POST /api/articles`
+  - Add a comment to the first article
+- [ ] Run it with `bb scripts/seed.clj` — verify the data appears in the DB
+- [ ] Understand: scripts are just files; tasks in `bb.edn` can call scripts with `(load-file "scripts/seed.clj")`
+
+### 9.6 Babashka vs the JVM — know the boundary
+- [ ] Understand what Babashka cannot do: load arbitrary Maven deps (no `next.jdbc`, no Ring, no shadow-cljs)
+- [ ] Understand babashka pods: external processes that expose a Clojure API — e.g. `pod-babashka-postgresql` for direct DB access without the JVM
+- [ ] Decide for this project: HTTP-based scripts (seed, smoke test) use only the built-in http-client — no pods needed
+- [ ] Write the rule for yourself: if a script needs JVM libs → use `clj -M:alias`; if it's IO + orchestration → use `bb`
+
+**Stage 9 complete when**: `bb test`, `bb smoke-test`, and `bb seed` all work from a fresh clone with only `bb`, `clj`, and `node` installed.
 
 ---
 

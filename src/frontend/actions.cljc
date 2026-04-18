@@ -33,7 +33,8 @@
    (fn [state]
      [[:http/request {:method "GET"
                       :url (articles-url state 0)
-                      :on-success [:app/fetch-articles-success]}]])
+                      :on-success [:app/fetch-articles-success]
+                      :loading-key :app/loading-articles?}]])
 
    :app/login
    (fn [state]
@@ -212,7 +213,8 @@
      [[:state/transact [{:db/id UI-ENTITY :app/current-article-slug slug}]]
       [:http/request {:method "GET"
                       :url (str "/api/articles/" slug)
-                      :on-success [:article/fetch-success]}]])
+                      :on-success [:article/fetch-success]
+                      :loading-key :app/loading-article?}]])
 
    :article/fetch-comments
    (fn [_state slug]

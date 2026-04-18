@@ -74,35 +74,6 @@ Beyond just building the app, the learner wants to understand:
 - **kaocha** — test runner
 - **Hurl** — official API test suite
 
-## Project Structure (target)
-
-```
-cljrealworld/
-├── AGENTS.md               ← this file
-├── deps.edn                ← backend deps + aliases
-├── shadow-cljs.edn         ← ClojureScript build config (Stages 7–8)
-├── src/
-│   ├── realworld/          ← backend + Datastar frontend
-│   │   ├── core.clj        ← entry point + Integrant system config
-│   │   ├── routes.clj      ← API routes (/api/*) + HTML routes
-│   │   ├── auth.clj        ← JWT sign/verify + cookie middleware
-│   │   ├── sse.clj         ← Datastar SSE response helpers
-│   │   ├── db/             ← next.jdbc queries, one ns per domain
-│   │   ├── handlers/       ← JSON API handlers, one ns per domain
-│   │   └── views/          ← Hiccup page/component functions, one ns per page
-│   └── frontend/           ← ClojureScript SPA (Stages 7–8)
-│       ├── core.cljs       ← app entry, DataScript schema, Replicant + Nexus wiring
-│       ├── routes.cljs     ← reitit frontend routes
-│       ├── actions.cljs    ← Nexus pure action handlers (state → actions)
-│       ├── effects.cljs    ← Nexus effect functions (HTTP, localStorage, routing)
-│       ├── queries.cljs    ← DataScript query helpers (Datalog + pull)
-│       └── views/          ← one ns per page (pure hiccup functions)
-├── test/
-│   └── realworld/
-└── dev/
-    └── user.clj            ← REPL dev helpers (integrant reset etc.)
-```
-
 ## Workflow Rules for Claude
 
 - Always check `tasks/todo.md` for current stage and progress before suggesting next steps
@@ -112,3 +83,8 @@ cljrealworld/
 - Explain *why* a library/pattern exists before showing how to use it
 - Stage gates: do not move to next stage until the current stage's exercises are working
 - Don't ask user what the code looks like currently in the repo, just read the code!
+
+## commands
+
+- `clj -M:test:backend` — run backend tests with Kaocha
+- `npx shadow-cljs compile test && node out/test.js` - compile and run frontend tests

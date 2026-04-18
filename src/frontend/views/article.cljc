@@ -1,13 +1,10 @@
-(ns frontend.views.article)
+(ns frontend.views.article 
+  (:require
+    [frontend.views.components :as c]))
 
 (defn render-ui [article current-user comments new-comment]
   [:div.min-h-screen
-   [:div.navbar.bg-base-100.shadow
-    [:div.navbar-start
-     [:a.btn.btn-ghost.text-xl {:on {:click [[:app/navigate :page/home]]}} "Realworld"]]
-    [:div.navbar-end
-     (when current-user
-       [:a.btn.btn-ghost {:on {:click [[:app/navigate :page/editor]]}} "New Article"])]]
+   (c/navbar current-user)
    [:div.container.mx-auto.px-4.py-8.max-w-3xl
     [:h1.text-4xl.font-bold.mb-4 (:article/title article)
      (when (= (get-in article [:article/author :user/username])
@@ -42,13 +39,4 @@
          "Post Comment"]])
      ;; comment list
      (for [comment comments]
-       [:div.card.bg-base-200.mb-3 {:key (:comment/id comment)}
-        [:div.card-body.p-4
-         [:p (:comment/body comment)]
-         [:div.flex.justify-between.items-center.mt-2
-          [:span.text-sm "- " (get-in comment [:comment/author :user/username])]
-          (when (= (get-in comment [:comment/author :user/username])
-                   (:user/username current-user))
-            [:button.btn.btn-ghost.btn-xs
-             {:on {:click [[:comment/delete (:article/slug article) (:comment/id comment)]]}}
-             "Delete"])]]])]]])
+       (c/comment-card comment current-user (:article/slug article)))]]])

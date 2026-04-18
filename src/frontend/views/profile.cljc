@@ -2,7 +2,10 @@
   (:require [frontend.views.articles :as articles-view]))
 
 (defn render-ui [profile active-tab articles]
-  (let [{:user/keys [username image bio following?]} profile]
+  (let [{username :user/username 
+         image :user/image 
+         bio :user/bio 
+         following? :user/following?} profile]
     [:div.min-h-screen.w-full.flex.items-center.justify-center
      [:div.profile-page
       [:div.user-info

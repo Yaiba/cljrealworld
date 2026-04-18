@@ -37,6 +37,8 @@
   (r/render (js/document.getElementById "app")
             (ui/render-ui state)))
 
+(def protected-pages #{:page/settings :page/editor :page/editor-edit})
+
 ;; let's define the terms
 ;; a 'state' is the snapshot of a 'store'(atom or datascript conn)
 
@@ -64,10 +66,18 @@
   (rfe/start!
    (rf/router routes)
    (fn [match _history]
-     (when match
-       (let [page (-> match :data :name)]
+     (if match
+       (let [page (-> match :data :name)
+             errors (:app/errors (d/pull (d/db store) [:app/errors] UI-ENTITY))]
+         (when errors
+           (d/transact! store [[:db/retract UI-ENTITY :app/errors errors]]))
          (prn "router match - " page)
-         (d/transact! store [{:db/id UI-ENTITY :app/page page}])
+         (d/transact! store [{:db/id UI-ENTITY :app/page page}]) ;; set page for UI
+         ;; redirect to login if the page is protected and user is not logged in
+         (when (and (contains? protected-pages page)
+                    (not (qs/get-token (d/db store))))
+           (rfe/push-state :page/login))
+
          (condp = page
            :page/home
            (nexus/dispatch app-nexus store {} [[:app/fetch-articles]
@@ -88,10 +98,11 @@
              (nexus/dispatch app-nexus store {} [[:article/fetch slug]
                                                  [:article/fetch-comments slug]]))
            :page/profile
-            (let [username (get-in match [:path-params :username])]
-              (nexus/dispatch app-nexus store {} [[:profile/fetch username]
-                                                  [:profile/fetch-articles username :my-articles]]))
-           ))))
+           (let [username (get-in match [:path-params :username])]
+             (nexus/dispatch app-nexus store {} [[:profile/fetch username]
+                                                 [:profile/fetch-articles username :my-articles]]))))
+       ;;no match
+       (d/transact! store [{:db/id UI-ENTITY :app/page :page/not-found}])))
    {:use-fragment false}))
 
 ;; -------- setup ---------

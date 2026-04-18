@@ -1,22 +1,14 @@
 (ns frontend.views.home
-  (:require [frontend.views.articles :as articles-view]))
+  (:require [frontend.views.articles :as articles-view]
+            [frontend.views.components :as c]))
 
 (defn render-ui 
-  [articles tags feed-type current-user current-page-num articles-count]  
+  [articles tags feed-type current-user current-page-num articles-count loading?]  
   (let [page-num (or current-page-num 0)
         total-pages (Math/ceil (/ (or articles-count 0) 10))]
     [:div.min-h-screen
      ;; navbar
-     [:div.navbar.bg-base-100.shadow
-      [:div.navbar-start
-       [:a.btn.btn-ghost.text-xl "Realworld"]]
-      [:div.navbar-end
-       (if current-user
-         [:div.flex.gap-2
-          [:a.btn.btn-ghost {:on {:click [[:app/navigate :page/editor]]}} "New Article"]
-          [:a.btn.btn-ghost {:on {:click [[:app/navigate :page/settings]]}} "Settings"]
-          [:span.btn.btn-ghost (:user/username current-user)]]
-         [:a.btn.btn-ghost {:on {:click [[:app/navigate :page/login]]}} "Sign in"])]]
+     (c/navbar current-user)
 
      ;; Hero banner
      [:div.hero.bg-neutral.text-neutral-content.py-8
@@ -34,7 +26,9 @@
         (when current-user
           [:a.tab {:class (when (= feed-type :personal) "tab-active")
                    :on {:click [[:feed/set-type :personal]]}} "Your Feed"])]
-        (articles-view/render-ui articles)]
+       (if loading?
+         [:div.flex.justify-center.py-8 [:span.loading.loading-spinner.loading-lg]]
+         (articles-view/render-ui articles))
 
        ;;pagination
        [:div.flex.gap-2.mt-4
@@ -52,7 +46,4 @@
          [:h3.card-title.text-sm "Popular Tags"]
          [:div.flex.flex-wrap.gap-2
           (for [tag tags]
-            [:span.badge.badge-neutral.cursor-pointer
-             {:key tag
-              :on {:click [[:feed/set-tag tag]]}}
-             tag])]]]]]]))
+            (c/tag-pill tag))]]]]]]))
