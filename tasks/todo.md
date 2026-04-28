@@ -407,47 +407,47 @@
 **Estimated time**: ~3–4 days
 
 ### 9.1 Install and understand Babashka
-- [ ] Install: `brew install borkdude/brew/babashka` — verify `bb --version`
-- [ ] Understand what Babashka is: a standalone binary with a subset of Clojure + batteries included (babashka.fs, babashka.process, babashka.http-client)
-- [ ] Run a one-liner from the terminal: `bb -e '(println (str "Hello from " (System/getProperty "os.name")))'`
-- [ ] Understand the key tradeoff: Babashka can't use JVM libs (no Postgres drivers, no Ring) — it's for scripting, not serving
+- [x] Install: `brew install borkdude/brew/babashka` — verify `bb --version`
+- [x] Understand what Babashka is: a standalone binary with a subset of Clojure + batteries included (babashka.fs, babashka.process, babashka.http-client)
+- [x] Run a one-liner from the terminal: `bb -e '(println (str "Hello from " (System/getProperty "os.name")))'`
+- [x] Understand the key tradeoff: Babashka can't use JVM libs (no Postgres drivers, no Ring) — it's for scripting, not serving
 
 ### 9.2 bb.edn — the task runner
-- [ ] Create `bb.edn` at the project root with a `:tasks` map
-- [ ] Write a `dev` task that starts the backend server: `{:task (shell "clj -M:backend:dev -m realworld.server")}`
-- [ ] Write a `test` task: `{:task (shell "clj -M:test:backend")}` and a `test-cljs` task for the shadow-cljs test
-- [ ] Write a `migrate` task that runs database migrations
-- [ ] Run `bb dev`, `bb test` — understand: `bb tasks` lists all tasks; tasks are just Clojure expressions
-- [ ] Add task dependencies with `:depends` — e.g. `test` depends on `migrate`
+- [x] Create `bb.edn` at the project root with a `:tasks` map
+- [x] Write a `dev` task that starts the backend server: `{:task (shell "clj -M:backend:dev -m realworld.server")}`
+- [x] Write a `test` task: `{:task (shell "clj -M:test:backend")}` and a `test-cljs` task for the shadow-cljs test
+- [x] Write a `migrate` task that runs database migrations
+- [x] Run `bb dev`, `bb test` — understand: `bb tasks` lists all tasks; tasks are just Clojure expressions
+- [x] Add task dependencies with `:depends` — e.g. `test` depends on `migrate`
 
 ### 9.3 File and process utilities
-- [ ] Use `babashka.fs` to write a `clean` task: delete `out/`, `resources/public/js/`, compiled artifacts
-- [ ] Use `babashka.process/shell` vs `babashka.process/process`: `shell` blocks and throws on failure; `process` returns a handle for async/parallel execution
-- [ ] Write a `dev-all` task that starts backend + `npx shadow-cljs watch app` in parallel using `process`
-- [ ] Understand: output from child processes — `:out :inherit` pipes to your terminal; `:out :string` captures it
+- [x] Use `babashka.fs` to write a `clean` task: delete `out/`, `resources/public/js/`, compiled artifacts
+- [x] Use `babashka.process/shell` vs `babashka.process/process`: `shell` blocks and throws on failure; `process` returns a handle for async/parallel execution
+- [x] Write a `dev-all` task that starts backend + `npx shadow-cljs watch app` in parallel using `process`
+- [x] Understand: output from child processes — `:out :inherit` pipes to your terminal; `:out :string` captures it
 
 ### 9.4 HTTP client — smoke test your own API
-- [ ] Use `babashka.http-client` (built-in) to write a `smoke-test` bb task that hits your running backend
-- [ ] Implement the sequence:
-  1. `POST /api/users/login` with test credentials → capture JWT from response
-  2. `GET /api/articles` with `Authorization: Token <jwt>` → assert `articlesCount` > 0
+- [x] Use `babashka.http-client` (built-in) to write a `smoke-test` bb task that hits your running backend
+- [x] Implement the sequence:
+  1. `POST /api/users` — self-register with unique timestamped email+username → capture JWT from response
+  2. `GET /api/articles` with `Authorization: Token <jwt>` → assert status 200
   3. `GET /api/tags` → assert tags is a non-empty vector
-- [ ] Print a pass/fail summary for each assertion — exit with code 1 on any failure
-- [ ] Understand: `bb.http-client/request` returns a map with `:status`, `:body` (string); parse JSON with `(json/parse-string body true)` from `cheshire` or `(clojure.data.json/read-str body :key-fn keyword)` from `clojure.data.json` (built into Babashka)
+- [x] Print a pass/fail summary for each assertion — exit with code 1 on any failure
+- [x] Understand: use `cheshire.core` (not `clojure.data.json`) for JSON in Babashka — `(json/parse-string body true)` keywordizes keys
 
 ### 9.5 Seed data script
-- [ ] Write `scripts/seed.clj` — a Babashka script (not a task) that calls your own API to insert fixture data:
+- [x] Write `scripts/seed.clj` — a Babashka script (not a task) that calls your own API to insert fixture data:
   - Register a test user via `POST /api/users`
   - Publish 3 articles via `POST /api/articles`
   - Add a comment to the first article
-- [ ] Run it with `bb scripts/seed.clj` — verify the data appears in the DB
-- [ ] Understand: scripts are just files; tasks in `bb.edn` can call scripts with `(load-file "scripts/seed.clj")`
+- [x] Run it with `bb scripts/seed.clj` — verify the data appears in the DB
+- [x] Understand: scripts are just files; tasks in `bb.edn` can call scripts with `(load-file "scripts/seed.clj")`
 
 ### 9.6 Babashka vs the JVM — know the boundary
-- [ ] Understand what Babashka cannot do: load arbitrary Maven deps (no `next.jdbc`, no Ring, no shadow-cljs)
-- [ ] Understand babashka pods: external processes that expose a Clojure API — e.g. `pod-babashka-postgresql` for direct DB access without the JVM
-- [ ] Decide for this project: HTTP-based scripts (seed, smoke test) use only the built-in http-client — no pods needed
-- [ ] Write the rule for yourself: if a script needs JVM libs → use `clj -M:alias`; if it's IO + orchestration → use `bb`
+- [x] Understand what Babashka cannot do: load arbitrary Maven deps (no `next.jdbc`, no Ring, no shadow-cljs)
+- [x] Understand babashka pods: external processes that expose a Clojure API — e.g. `pod-babashka-postgresql` for direct DB access without the JVM
+- [x] Decide for this project: HTTP-based scripts (seed, smoke test) use only the built-in http-client — no pods needed
+- [x] Write the rule for yourself: if a script needs JVM libs → use `clj -M:alias`; if it's IO + orchestration → use `bb`
 
 **Stage 9 complete when**: `bb test`, `bb smoke-test`, and `bb seed` all work from a fresh clone with only `bb`, `clj`, and `node` installed.
 

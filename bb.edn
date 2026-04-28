@@ -1,0 +1,28 @@
+{:tasks
+ {migrate {:doc "run database migrations"
+           :task (shell "clj -M:backend -e \"(load-file \\\"scripts/migrate.clj\\\")\"")}
+  dev {:doc "start the development server"
+       :task (shell "clj -M:backend:dev -m realworld.server")}
+  shadow {:doc "start the shadow-cljs development server"
+          :task (shell "npx shadow-cljs watch app")}
+  css {:doc "compile CSS with Tailwind"
+       :task (shell "npx @tailwindcss/cli -i ./src/frontend/tailwind.css -o ./resources/public/styles.css --watch")}
+  portfolio {:doc "start the portfolio development server"
+             :task (shell "npx shadow-cljs watch portfolio")}
+  test {:doc "run tests"
+        :depends [migrate]
+        :task (shell "clj -M:backend:test")}
+  test-cljs {:doc "run ClojureScript tests"
+             :task (do (shell "npx shadow-cljs compile test")
+                       (shell "node out/test.js"))}
+  clean {:doc "delete compiled artifacts"
+         :task (do (babashka.fs/delete-tree "out")
+                   (babashka.fs/delete-tree "resources/public/js"))}
+  dev-all {:doc "start backend + frontend watch in parallel"
+           :task (do
+                   (babashka.process/process "clj -M:backend:dev -m realworld.server" {:out :inherit})
+                   (shell "npx shadow-cljs watch app"))}
+  smoke-test {:doc "run a simple smoke test against the running server"
+              :task (load-file "scripts/smoke_test.clj")}
+  seed {:doc "seed the database with test data"
+        :task (load-file "scripts/seed.clj")}}}
