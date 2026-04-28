@@ -3,23 +3,32 @@
             [next.jdbc.connection :as jdbc.conn]
             [org.httpkit.server :as http]
             [realworld.server :as server]
-            [realworld.db.connection :refer [db-spec]])
-  (:import [com.zaxxer.hikari HikariDataSource]))
+            [aero.core :as aero]
+            [clojure.java.io :as io])
+  (:import [com.zaxxer.hikari HikariConfig HikariDataSource]))
 
-(def config 
-  {:app/secret "my-secret-key" ; later read from env
-   :db/pool db-spec
-   :router/core {:db (ig/ref :db/pool)
-                 :secret (ig/ref :app/secret)}
-   :server/http {:port 3000
-                 :handler (ig/ref :router/core)}})
+(defn config []
+  (let [{:keys [secret database-url port]} 
+        (aero/read-config (io/resource "config.edn"))]
+    {:app/secret secret
+     :db/pool {:jdbc-url database-url}
+     :router/core {:db (ig/ref :db/pool)
+                   :secret (ig/ref :app/secret)}
+     :server/http {:port port
+                    :handler (ig/ref :router/core)}}))
 
 (defmethod ig/init-key :app/secret [_ v] v)
 
 (defmethod ig/init-key :db/pool
-  [_ opts]
-  (println "Initializing database connection pool with options:" opts)
-  (jdbc.conn/->pool HikariDataSource opts))
+  [_ {:keys [jdbc-url]}]
+  (println "Initializing database connection pool with JDBC URL:" jdbc-url)
+  (let [
+        hc (doto (com.zaxxer.hikari.HikariConfig.)
+             (.setJdbcUrl jdbc-url))]
+    (com.zaxxer.hikari.HikariDataSource. hc)))
+  ;; (println "Initializing database connection pool with options:" opts)
+  ;; (jdbc.conn/->pool HikariDataSource opts)
+
 
 (defmethod ig/halt-key! :db/pool
   [_ datasource] 

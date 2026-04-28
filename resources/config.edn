@@ -1,0 +1,3 @@
+{:secret       #or [#env JWT_SECRET "my-secret-key"]
+ :database-url #or [#env DATABASE_URL "jdbc:postgresql://localhost:5432/realworld?user=realworld&password=password"]
+ :port         #long #or [#env SERVER_PORT 3000]}
