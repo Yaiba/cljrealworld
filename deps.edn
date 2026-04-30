@@ -34,9 +34,12 @@
                 no.cjohansen/replicant {:mvn/version "2025.12.1"}
                 no.cjohansen/nexus {:mvn/version "2025.11.1"}
                 metosin/reitit-frontend {:mvn/version "0.10.1"}
-                no.cjohansen/portfolio {:mvn/version "2026.03.1"}}}
+                }}
   :cljs-dev {:extra-paths ["dev/frontend" "portfolio/src" "test"]
              :extra-deps
-             {no.cjohansen/dataspex {:mvn/version "2026.01.1"}}}
+             {no.cjohansen/dataspex {:mvn/version "2026.01.1"}}
+              no.cjohansen/portfolio {:mvn/version "2026.03.1"}}
   :run {:main-opts ["-m" "realworld.main"]}
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.13"}}
+          :ns-default build}
   }}

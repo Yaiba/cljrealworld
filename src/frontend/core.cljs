@@ -17,7 +17,7 @@
    :nexus/placeholders
    {:event.target/value
     (fn [{:replicant/keys [dom-event]}]
-      (some-> dom-event .-target .-value))}
+      (some-> ^js dom-event .-target .-value))}
 
    :nexus/actions actions
    :nexus/effects effects
@@ -49,7 +49,7 @@
                (render db-after)))
 
   ;; init state
-  (d/transact! store [{:app/loaded-at (.getTime (js/Date.))}])
+  (d/transact! store [{:app/loaded-at (.getTime ^js (js/Date.))}])
 
   ;; wire up nexus
   (r/set-dispatch!
@@ -91,7 +91,6 @@
            (nexus/dispatch app-nexus store {} [[:editor/init nil]])
            :page/editor-edit
            (let [slug (get-in match [:path-params :slug])]
-             (prn "editor edit =" slug)
              (nexus/dispatch app-nexus store {} [[:editor/init slug]]))
            :page/article
            (let [slug (get-in match [:path-params :slug])]

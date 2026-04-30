@@ -1,10 +1,11 @@
 (ns realworld.server
   (:require [reitit.ring :as ring]
             [muuntaja.core :as m]
+            [clojure.java.io :as io]
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.parameters :as parameters]
             [reitit.ring.middleware.exception :as exception]
-            [ring.middleware.file :as rfile]
+            [ring.middleware.resource :as resource]
             [realworld.db.users :as db.users]
             [realworld.db.follows :as db.follows]
             [realworld.db.articles :as db.articles]
@@ -336,7 +337,7 @@
   []
   {:status 200
    :headers {"Content-Type" "text/html"}
-   :body (slurp "resources/public/index.html")})
+   :body (slurp (io/resource "public/index.html"))})
 
 (defn default-handler
   [req]
@@ -497,6 +498,6 @@
   (-> (ring/routes
        (ring/ring-handler (create-api-router secret))
        default-handler) ;plain handler, catches everything that fell through 
-      (ring.middleware.file/wrap-file "resources/public")
+      (resource/wrap-resource "public")
       (wrap-db ds)
       (wrap-secret secret)))

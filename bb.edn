@@ -25,4 +25,11 @@
   smoke-test {:doc "run a simple smoke test against the running server"
               :task (load-file "scripts/smoke_test.clj")}
   seed {:doc "seed the database with test data"
-        :task (load-file "scripts/seed.clj")}}}
+        :task (load-file "scripts/seed.clj")}
+  build {:doc "build an uberjar for production"
+         :task (do (shell "npx shadow-cljs release app")
+                   (shell "clj -T:build uber"))}
+  build-docker {:doc "build a Docker image"
+              :task (shell "docker build -t cljrealworld:latest .")}
+  run-release {:doc "run the production server from the built uberjar"
+             :task (shell "java -jar target/app.jar")}}}

@@ -42,8 +42,7 @@
            {:type "text"
             :placeholder "Enter tags"
             :value (or (:editor/tag-input form) "")
-            :on {:input [[:editor/set-field :tag-input [:event.target/value]]]
-                 :keydown [[:editor/tag-keydown [:event.target/value]]]}}
+            :on {:input [[:editor/set-field :tag-input [:event.target/value]]]}}
            [:button.btn.btn-outline
             {:on {:click [[:editor/add-tag]]}}
             "Add Tag"]]
@@ -60,6 +59,6 @@
 
          [:button.btn.btn-primary.w-full
           {:on {:click [(if (:editor/slug form)
-                          [[:article/update]]
-                          [[:article/create]])]}}
+                          [:article/update]
+                          [:article/create])]}}
           (if (:editor/slug form) "Update Article" "Publish Article")]]]]]]))

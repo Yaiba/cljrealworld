@@ -181,7 +181,11 @@
   {:effect/stop-event-propagation
    (fn [{:keys [dispatch-data]} _system]
      (prn "stop-propagation effect, dispatch-data=" dispatch-data)
-     (some-> dispatch-data :replicant/dom-event .stopPropagation))
+     #_(comment
+         "need to mark ^js on the event"
+         (some-> dispatch-data :replicant/dom-event .stopPropagation))
+     (when-let [^js event (:replicant/dom-event dispatch-data)]
+       (.stopPropagation event)))
    :route/push-state
    (fn [_ctx _system page & [path-params]]
      (prn "push-state ==" page path-params)
@@ -202,7 +206,7 @@
                                :headers headers
                                :body (when body
                                        (js/JSON.stringify (clj->js body)))}))
-           (.then #(.text %))
+           (.then #(.text ^js %))
            (.then #(let [resp (when (seq %) (js->clj (js/JSON.parse %) :keywordize-keys true))
                          [on-success-key & success-args] on-success
                          [on-failure-key & failure-args] on-failure
@@ -216,7 +220,8 @@
                      (when loading-key
                        (d/transact! system [{:db/id UI-ENTITY loading-key false}]))
                      (when handler
-                       (apply handler system resp handler-args)))))))
+                       (apply handler system resp handler-args))))
+           (.catch (fn [^js err] (js/console.error "HTTP effect error:" err))))))
 
    :user/logout
    (fn [_ctx system]
